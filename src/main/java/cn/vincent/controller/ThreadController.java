@@ -3,12 +3,10 @@ package cn.vincent.controller;
 import cn.vincent.server.ThreadServer;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.security.auth.Subject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.*;
@@ -106,16 +104,10 @@ public class ThreadController {
         return "springThread";
     }
 
-    @GetMapping("/treadPool")
-    public String treadPool() {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        executorService.execute(() -> {
-            for (int i = 0; i < 10; i++)
-                System.out.println("子线程活动中______" + i);
-        });
-        return "treadPool";
-    }
-
+    /**
+     * 线程池创建线程
+     * @return
+     */
     @SneakyThrows
     @GetMapping("/cachedThreadPool")
     public String cachedThreadPool() {
@@ -135,6 +127,10 @@ public class ThreadController {
         return "cachedThreadPool";
     }
 
+    /**
+     * 线程池创建线程
+     * @return
+     */
     @SneakyThrows
     @GetMapping("/fixedThreadPool")
     public String fixedThreadPool() {
@@ -154,11 +150,5 @@ public class ThreadController {
         return "fixedThreadPool";
     }
 
-    @GetMapping("/test")
-    public String test(){
-        return "";
-    }
-
     //endregion
-
 }
