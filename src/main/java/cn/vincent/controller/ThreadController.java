@@ -73,6 +73,7 @@ public class ThreadController {
 
     /**
      * 实现Callable接口 带返回值的Runnable
+     *
      * @return
      */
     @SneakyThrows
@@ -98,17 +99,23 @@ public class ThreadController {
 
     /**
      * spring异步注释 @Async
+     *
      * @return
      */
     @GetMapping("/springThread")
-    public String springThread(){
+    public String springThread() {
         threadServer.springAsyncThread();
         return "springThread";
     }
 
-    public String treadPool(){
+    @GetMapping("/treadPool")
+    public String treadPool() {
         ExecutorService executorService = Executors.newCachedThreadPool();
-        return "";
+        executorService.execute(() -> {
+            for (int i = 0; i < 10; i++)
+                System.out.println("子线程活动中______" + i);
+        });
+        return "treadPool";
     }
 
     //endregion
