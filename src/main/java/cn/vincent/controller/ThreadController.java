@@ -118,6 +118,11 @@ public class ThreadController {
         return "treadPool";
     }
 
+    @GetMapping("/test")
+    public String test(){
+        return "";
+    }
+
     //endregion
 
 }
