@@ -71,6 +71,7 @@ public class ThreadController {
 
     /**
      * 实现Callable接口 带返回值的Runnable
+     *
      * @return
      */
     @SneakyThrows
@@ -96,10 +97,11 @@ public class ThreadController {
 
     /**
      * spring异步注释 @Async
+     *
      * @return
      */
     @GetMapping("/springThread")
-    public String springThread(){
+    public String springThread() {
         threadServer.springAsyncThread();
         return "springThread";
     }
@@ -150,6 +152,11 @@ public class ThreadController {
         }
         System.out.println(submit.get());
         return "fixedThreadPool";
+    }
+
+    @GetMapping("/test")
+    public String test(){
+        return "";
     }
 
     //endregion
