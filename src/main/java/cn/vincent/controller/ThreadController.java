@@ -130,6 +130,25 @@ public class ThreadController {
         return "cachedThreadPool";
     }
 
+    @SneakyThrows
+    @GetMapping("/fixedThreadPool")
+    public String fixedThreadPool() {
+        ExecutorService executorService = Executors.newFixedThreadPool(20);
+        Future<String> submit = executorService.submit(() -> {
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(1000);
+                System.out.println("子线程启动______" + 1);
+            }
+            return "子线程结束";
+        });
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(1000);
+            System.out.println("主线程启动______" + 1);
+        }
+        System.out.println(submit.get());
+        return "fixedThreadPool";
+    }
+
     //endregion
 
 }
