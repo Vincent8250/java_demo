@@ -8,12 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.security.auth.Subject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
 
 @RestController
 @RequestMapping("/thread")
@@ -73,6 +71,7 @@ public class ThreadController {
 
     /**
      * 实现Callable接口 带返回值的Runnable
+     *
      * @return
      */
     @SneakyThrows
@@ -98,17 +97,37 @@ public class ThreadController {
 
     /**
      * spring异步注释 @Async
+     *
      * @return
      */
     @GetMapping("/springThread")
-    public String springThread(){
+    public String springThread() {
         threadServer.springAsyncThread();
         return "springThread";
     }
 
-    public String treadPool(){
+    public String treadPool() {
         ExecutorService executorService = Executors.newCachedThreadPool();
         return "";
+    }
+
+    @SneakyThrows
+    @GetMapping("/cachedThreadPool")
+    public String cachedThreadPool() {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        Future<String> submit = executorService.submit(() -> {
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(1000);
+                System.out.println("子线程启动______" + 1);
+            }
+            return "子线程结束";
+        });
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(1000);
+            System.out.println("主线程启动______" + 1);
+        }
+        System.out.println(submit.get());
+        return "cachedThreadPool";
     }
 
     //endregion
