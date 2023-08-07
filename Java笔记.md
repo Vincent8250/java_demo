@@ -1888,8 +1888,6 @@ atomicInteger.incrementAndGet(); //执行自增1
 
 ### 创建型
 
-
-
 #### 工厂模式
 
 
