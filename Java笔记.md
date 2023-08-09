@@ -2014,15 +2014,45 @@ public static void main(String[] args) {
 
 
 
-
-
-
-
 #### 单例模式
+
+单例模式是一种创建型设计模式，它确保一个类只有一个实例，并提供了一个全局访问点来访问该实例。
+
+- 单例类只能有一个实例
+- 单例类必须自己创建自己的唯一实例
+- 单例类必须给所有其他对象提供这一实例
+
+主要解决：一个全局使用的类频繁地创建与销毁
+
+何时使用：当你想控制实例数目 节省系统资源的时候 可以使用单例模式
+一般像是IO或者数据库这样创建起来资源消耗较大的可以考虑使用
+
+##### 代码实现
+
+~~~java
+public class SingleObject {
+    private static SingleObject singleObject = null;
+
+    private SingleObject() { }
+
+    // 加 synchronized 保证线程安全
+    public static synchronized SingleObject getSingleObject() {
+        if (singleObject == null)
+            singleObject = new SingleObject();
+        return singleObject;
+    }
+}
+~~~
+
+单例模式有很多种实现方式 这只是其中一种线程安全的方式
 
 
 
 #### 建造者模式
+
+
+
+
 
 
 
