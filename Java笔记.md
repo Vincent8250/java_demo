@@ -2075,9 +2075,106 @@ public class SingleObject {
 建造者模式的目的是为了**降低复杂对象的构建难度**，让对象本身更专注自身的功能，构建方法就交给建造者。
 
 例如：在mybatis的配置类中有很多属性，所以构建起来会非常困难。这个时候就可引用建造者模式，mybatis中的SqlSessionFactoryBuilder从名字就可以看出来使用的是建造者模式。开发者只需要指定必须的属性（数据库地址、账户密码之类的）就可以完成构建进行使用。
+从这个例子也可以看得出来建造者的目的就是为了让你更简单的创建复杂对象，像
 
 建造者的适用场景：复杂对象的构建，**将对象的构建和对象本身进行解耦**。
 建造者模式的缺点是如果属性之间没什么关联性且没有默认值设置的话，构建者模式就比较鸡肋没什么用。
+
+##### 代码实现
+
+汽车类 具体实现类 作为演示这里只有三个属性
+
+~~~java
+@Data
+public class Car {
+    // 品牌
+    String brand;
+    // 汽车类型
+    String carType;
+    // 驱动
+    int actuate;
+}
+~~~
+
+建造者接口 作为演示这里只有一个建造方法
+
+~~~java
+public interface CarBuilder {
+    Car builder(String brand);
+}
+~~~
+
+建造者类 实现类
+
+~~~java
+public class CarBuilderImpl implements CarBuilder {
+    // Car 属性默认值
+    private String CAR_TYPE = "人力车";
+    private int ACTUATE = 2;
+
+    private Car car = new Car();
+    private String carType = CAR_TYPE;
+    private int actuate = ACTUATE;
+
+    public CarBuilderImpl carType(String carType) {
+        this.carType = carType;
+        return this;
+    }
+
+    public CarBuilderImpl actuate(int actuate) {
+        this.actuate = actuate;
+        return this;
+    }
+
+    public Car builder() {
+        car.setCarType(carType);
+        car.setActuate(actuate);
+        return car;
+    }
+
+    public Car builder(String brand) {
+        switch (brand) {
+            case "永久牌":
+                car.setCarType("人力车");
+                car.setActuate(2);
+                break;
+            case "奥迪牌":
+                car.setCarType("汽车");
+                car.setActuate(4);
+                break;
+            default:
+                car.setCarType(CAR_TYPE);
+                car.setActuate(ACTUATE);
+                break;
+        }
+        return car;
+    }
+}
+~~~
+
+消费类
+
+~~~java
+public static void main(String[] args) {
+    System.out.println("____________🚲____________");
+    Car car_1 = new CarBuilderImpl().builder("永久牌");
+    show(car_1);
+
+    System.out.println("____________🚗____________");
+    Car car_2 = new CarBuilderImpl().builder("奥迪牌");
+    show(car_2);
+
+    System.out.println("____________坦克____________");
+    CarBuilderImpl carBuilder = new CarBuilderImpl();
+    carBuilder.carType("解放牌");
+    carBuilder.actuate(8);
+    Car car_3 = carBuilder.builder();
+    show(car_3);
+}
+private static void show(Car car) {
+    System.out.println("这是：" + car.getCarType() + " 有" + car.getActuate() + "个轮子");
+}
+~~~
 
 
 
@@ -2088,6 +2185,12 @@ public class SingleObject {
 
 
 #### 原型模式
+
+
+
+
+
+
 
 
 
