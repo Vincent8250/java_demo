@@ -2256,6 +2256,119 @@ JAVA实现Cloneable接口 重写clone()
 
 #### 装饰器模式
 
+装饰器模式将对象包装在装饰器类中，以便动态地修改其行为，动态的扩展。
+这种模式创建了一个装饰类，用来包装原有的类，并在保持类方法签名完整性的前提下，提供了额外的功能。
+
+为什么不使用子类继承的形式进行扩展呢？
+随着扩展功能的增多，子类会很膨胀。并且适配器模式关注的是功能，无所谓继承关系。
+就增加功能来说，装饰器模式相比生成子类更为灵活。
+
+优点：
+
+- 装饰类和被装饰类可以独立发展 不会相互耦合
+- 装饰模式是继承的一个替代模式 装饰模式可以动态扩展一个实现类的功能
+
+缺点：多层装饰比较复杂
+
+##### 理解
+
+在我看来哈 装饰器模式是为了再不修改原始代码的情况下对原有的代码进行扩展
+
+是一种扩展方法
+
+##### 代码实现
+
+实体类接口
+
+~~~java
+public interface Car {
+    void drive();
+    String getCarName();
+    String getCarNum();
+}
+~~~
+
+实体类
+
+~~~java
+public class AudiCar implements Car {
+    public String carName;
+    public String carNumber;
+    public AudiCar(String number) {
+        this.carName = "Audi";
+        this.carNumber = number;
+    }
+    @Override
+    public void drive() {
+        System.out.println("正在行驶的是 AudiCar");
+    }
+    @Override
+    public String getCarName() {
+        return this.carName;
+    }
+    @Override
+    public String getCarNum() {
+        return this.carNumber;
+    }
+}
+
+public class BenzCar implements Car {
+    public String carName;
+    public String carNumber;
+    public BenzCar(String number) {
+        this.carName = "Benz";
+        this.carNumber = number;
+    }
+    @Override
+    public void drive() {
+        System.out.println("正在行驶的是 BenzCar");
+    }
+    @Override
+    public String getCarName() {
+        return this.carName;
+    }
+    @Override
+    public String getCarNum() {
+        return this.carNumber;
+    }
+}
+~~~
+
+抽象装饰类
+
+~~~java
+public abstract class CarDecorator {
+    public Car car;
+    public CarDecorator(Car car) {
+        this.car = car;
+    }
+    public abstract String getCarName();
+    public abstract String getCarNum();
+}
+~~~
+
+实体装饰类
+
+~~~java
+public class CarDecoratorImpl extends CarDecorator {
+    public CarDecoratorImpl(Car car) {
+        super(car);
+    }
+    @Override
+    public String getCarName() {
+        return "这是一台：" + car.getCarName();
+    }
+    @Override
+    public String getCarNum() {
+        return "这台车的号码是：" + car.getCarNum();
+    }
+}
+~~~
+
+
+
+
+
 
 
 #### 组合模式
