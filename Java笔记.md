@@ -2270,7 +2270,7 @@ JAVA实现Cloneable接口 重写clone()
 
 ##### 代码实现
 
-参考代码 三种实现
+参考代码 cn.vincent.design.structuralModel.proxy 三种实现
 
 - 静态代理
 
@@ -2305,23 +2305,40 @@ JAVA实现Cloneable接口 重写clone()
 
 ##### 代码实现
 
-
-
-
-
-
-
-
-
-
+参考代码 cn.vincent.design.structuralModel.adapter
 
 
 
 #### 桥接模式
 
+将抽象部分与实现部分分离，使它们都可以独立的变化。
+
+优点
+
+- 抽象和实现的分离
+- 优秀的扩展能力
+- 实现细节对客户透明
+
+缺点
+
+桥接模式会增加系统的理解与设计难度 
+由于聚合关联关系建立在抽象层 要求开发者针对抽象进行设计与编程
 
 
-#### 过滤器模式
+
+##### 理解
+
+桥接模式的目的是将抽象和实现隔绝开 进行解耦
+实际开发中可能出现一个接口有众多的实现类 直接依赖实现类进行开发显然是不可能的
+所以这里需要将抽象和实现的部分分开 从而保证更换实现类不影响抽象逻辑
+
+springboot 中的日志框架似乎就是用的桥接模式兼容各个日志框架的
+
+
+
+##### 代码实现
+
+参考代码 cn.vincent.design.structuralModel.bridge
 
 
 
@@ -2438,7 +2455,7 @@ public class CarDecoratorImpl extends CarDecorator {
 
 
 
-
+#### 过滤器模式
 
 
 
@@ -2466,13 +2483,7 @@ public class CarDecoratorImpl extends CarDecorator {
 
 ### 行为型
 
-
-
-#### 责任链模式
-
-
-
-#### 命令模式
+#### 策略模式
 
 
 
@@ -2484,15 +2495,27 @@ public class CarDecoratorImpl extends CarDecorator {
 
 
 
+#### 观察者模式
+
+
+
+#### 模板模式
+
+
+
+#### 责任链模式
+
+
+
+#### 命令模式
+
+
+
 #### 中介者模式
 
 
 
 #### 备忘录模式
-
-
-
-#### 观察者模式
 
 
 
@@ -2503,12 +2526,6 @@ public class CarDecoratorImpl extends CarDecorator {
 #### 空对象模式
 
 
-
-#### 策略模式
-
-
-
-#### 模板模式
 
 
 
