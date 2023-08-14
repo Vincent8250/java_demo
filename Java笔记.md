@@ -1,15 +1,226 @@
 # Java
 
+[笔记推荐](https://github.com/Snailclimb/JavaGuide/blob/main/README.md)
+
+
+
 ## 基础模块
 
 ### Java环境
 
-- jdk 是开发环境 
-- jre 是运行环境
-- jvm 是虚拟机
-- jdk 包括 jre jre 包括 jvm
+- JDK是开发环境 JDK包含Java程序的运行环境JRE和一些开发编译调试工具
+- JRE是运行环境 JRE包含Java程序的运行基础JVM
+- JVM是虚拟机
 
 ![image-20230803150328429](img/image-20230803150328429.png)
+
+#### 编译过程
+
+.java文件 通过Javac程序编译成 .class字节码文件 
+
+再通过解释器或者JIT将字节码文件  解释为机器可以理解的机器码指令
+
+![image-20230814211350425](img/image-20230814211350425.png)
+
+需要注意的是在将字节码文件解释为机器码时  并不全是走的解释器也会走JIT
+经常被调用的代码（也就是热点代码） 会进入JIT（即时编译器） 编译后的机器码会被保留下来
+所以说Java时编译与解释共存的语言
+
+![image-20230814211958826](img/image-20230814211958826.png)
+
+
+
+#### JDK
+
+Oracle JDK vs OpenJDK：
+
+- 对于Java7而言OpenJDK和OracleJDK是十分接近的
+  OracleJDK是基于OpenJDK7构建的 只添加了一些小功能
+- OpenJDK 是一个参考模型并且是完全开源的
+  OracleJDK 并不开源
+- OpenJDK 是完全免费的
+  OracleJDK 会提供免费版本 但一般有时间限制（不过 JDK8u221 之前只要不升级可以无限期免费）
+- OracleJDK 在 OpenJDK 的基础上添加了一些特有的功能和工具
+  在Java11之后 OracleJDK和OpenJDK的功能基本一致
+- OpenJDK不提供LTS服务
+  OracleJDK 大概每三年都会推出一个 LTS 版进行长期支持
+  两者稳定性其实也是差不多的
+
+推荐使用OpenJDK 因为免费开源
+
+
+
+#### JVM
+
+JVM 并不是只有一种 只要满足 JVM 规范谁都可以开发自己的专属 JVM
+也就是说我们平时接触到的 HotSpot VM 仅仅是是 JVM 规范的一种实现而已
+
+
+
+### 基础语法
+
+#### 数据类型
+
+Java 中有 8 种基本数据类型，分别为：
+
+- 6 种数字类型：
+  - 4 种整数型：`byte`、`short`、`int`、`long`
+  - 2 种浮点型：`float`、`double`
+- 1 种字符类型：`char`
+- 1 种布尔型：`boolean`
+
+
+
+#### 包装类型
+
+
+
+##### 区别
+
+- **用途**：除了定义一些常量和局部变量之外，我们在其他地方比如方法参数、对象属性中很少会使用基本类型来定义变量。并且，**包装类型可用于泛型，而基本类型不可以。**
+- **存储方式**：基本数据类型的局部变量存放在 Java 虚拟机栈中的局部变量表中，基本数据类型的成员变量（未被 `static` 修饰 ）存放在 Java 虚拟机的堆中。包装类型属于对象类型，我们知道几乎所有对象实例都存在于堆中。
+- **占用空间**：相比于包装类型（对象类型）， 基本数据类型占用的空间往往非常小。
+- **默认值**：成员变量包装类型不赋值就是 `null` ，而基本类型有默认值且不是 `null`。
+- **比较方式**：对于基本数据类型来说，`==` 比较的是值。对于包装数据类型来说，`==` 比较的是对象的内存地址。所有整型包装类对象之间值的比较，全部使用 `equals()` 方法。
+
+
+
+##### 装箱拆箱
+
+是指基本类型和包装类型之间的相互转换
+
+```java
+Integer i = 10;  //装箱
+int n = i;   //拆箱
+```
+
+
+
+##### BigDecimal
+
+`BigDecimal` 可以实现对浮点数的运算，不会造成精度丢失。通常情况下，大部分需要浮点数精确运算结果的业务场景（比如涉及到钱的场景）都是通过 `BigDecimal` 来做的。
+
+
+
+### 面向对象
+
+> **接口和抽象类有什么共同点和区别？**
+>
+> 共同点：
+>
+> - 都不能被实例化
+> - 都可以包含抽象方法
+> - 都可以有默认实现的方法（Java 8 可以用 `default` 关键字在接口中定义默认方法）
+>
+> 区别：
+>
+> - 接口主要用于对类的行为进行约束 你实现了某个接口就具有了对应的行为
+>   抽象类主要用于代码复用 强调的是所属关系
+> - 一个类只能继承一个类  但是可以实现多个接口
+> - 接口中的成员变量只能是 `public static final` 类型的  不能被修改且必须有初始值
+>   抽象类的成员变量默认default  可在子类中被重新定义  也可被重新赋值
+
+
+
+> **深拷贝和浅拷贝区别了解吗？什么是引用拷贝？**
+>
+> 引用拷贝 => 只是复制对象的引用
+>
+> 浅拷贝 => 复制对象 但对象内的引用对象不会复制
+>
+> 深拷贝 => 复制对象 对象内部的引用对象也会被复制
+>
+> Java默认实现的是浅克隆(Java的克隆好像是通过C++实现的) 需要深克隆的效果 只能自己实现
+>
+> 浅克隆：
+>
+> <img src="/img/image-20230809235746554.png" alt="image-20230809235746554" style="zoom:67%;" />
+>
+> 深克隆：
+>
+> <img src="/img/image-20230809235854886.png" alt="image-20230809235854886" style="zoom:67%;" />
+>
+> 
+
+
+
+> Object中的常用方法？
+
+~~~java
+/**
+ * native 方法，用于返回当前运行时对象的 Class 对象，使用了 final 关键字修饰，故不允许子类重写。
+ */
+public final native Class<?> getClass()
+/**
+ * native 方法，用于返回对象的哈希码，主要使用在哈希表中，比如 JDK 中的HashMap。
+ */
+public native int hashCode()
+/**
+ * 用于比较 2 个对象的内存地址是否相等，String 类对该方法进行了重写以用于比较字符串的值是否相等。
+ */
+public boolean equals(Object obj)
+/**
+ * native 方法，用于创建并返回当前对象的一份拷贝。
+ */
+protected native Object clone() throws CloneNotSupportedException
+/**
+ * 返回类的名字实例的哈希码的 16 进制的字符串。建议 Object 所有的子类都重写这个方法。
+ */
+public String toString()
+/**
+ * native 方法，并且不能重写。唤醒一个在此对象监视器上等待的线程(监视器相当于就是锁的概念)。如果有多个线程在等待只会任意唤醒一个。
+ */
+public final native void notify()
+/**
+ * native 方法，并且不能重写。跟 notify 一样，唯一的区别就是会唤醒在此对象监视器上等待的所有线程，而不是一个线程。
+ */
+public final native void notifyAll()
+/**
+ * native方法，并且不能重写。暂停线程的执行。注意：sleep 方法没有释放锁，而 wait 方法释放了锁 ，timeout 是等待时间。
+ */
+public final native void wait(long timeout) throws InterruptedException
+/**
+ * 多了 nanos 参数，这个参数表示额外时间（以纳秒为单位，范围是 0-999999）。 所以超时的时间还需要加上 nanos 纳秒。。
+ */
+public final void wait(long timeout, int nanos) throws InterruptedException
+/**
+ * 跟之前的2个wait方法一样，只不过该方法一直等待，没有超时时间这个概念
+ */
+public final void wait() throws InterruptedException
+/**
+ * 实例被垃圾回收器回收的时候触发的操作
+ */
+protected void finalize() throws Throwable { }
+~~~
+
+
+
+> **hashCode() 有什么用？**
+>
+> 获取哈希码 哈希码的作用是确定该对象在哈希表中的索引位置
+> Object的hashCode()方法是本地方法 也就是用C语言或C++实现的
+
+
+
+> **为什么要有 hashCode？**
+>
+> hashCode可以用来判断对象是否相等 （hashset的添加方法中也是先判断hashcode 如果相等再通过equals判断）
+>
+> 其实 hashCode()和equals()都是用于比较两个对象是否相等
+> 不过hashcode可能重复 所以最后还需要用equals来判断确认
+>
+> 由此也引出了下一个问题
+>
+> 
+>
+> **为什么重写 equals() 时必须重写 hashCode() 方法？**
+>
+> 因为如果equals方法判断两个对象是相等的  那么两个对象的hashCode值必须是相等 所以要重写hashCode()
+>
+> 如果重写equals()时没有重写hashCode()方法的话
+> 就可能会导致equals方法判断是相等的两个对象hashCode值却不相等。
+
+
 
 ### 数据连接
 
@@ -19,7 +230,9 @@ JDBC： Java提供给数据库方的一套API
 
 Java程序通过 数据库连接驱动 就可连接上数据库
 
-### JDBC 执行过程
+
+
+#### JDBC 执行过程
 
 1. 注册驱动
 2. JDBC执行
@@ -28,7 +241,9 @@ Java程序通过 数据库连接驱动 就可连接上数据库
 5. 封装结果集
 6. 释放资源
 
-### MySQL 数据库驱动
+
+
+#### MySQL 数据库驱动
 
 `com.mysql.cj.jdbc.Driver`和`com.mysql.jdbc.Driver`是MySQL JDBC驱动程序的不同版本，其中`com.mysql.jdbc.Driver`是早期版本的驱动程序，而`com.mysql.cj.jdbc.Driver`是更新的版本。
 
@@ -2455,19 +2670,15 @@ public class CarDecoratorImpl extends CarDecorator {
 
 
 
-#### 过滤器模式
+#### 其他
 
+##### 过滤器模式
 
+##### 组合模式
 
-#### 组合模式
+##### 外观模式
 
-
-
-#### 外观模式
-
-
-
-#### 享元模式
+##### 享元模式
 
 
 
@@ -2501,35 +2712,21 @@ public class CarDecoratorImpl extends CarDecorator {
 
 #### 模板模式
 
+#### 其他
 
+##### 责任链模式
 
-#### 责任链模式
+##### 命令模式
 
+##### 中介者模式
 
+##### 备忘录模式
 
-#### 命令模式
+##### 状态模式
 
+##### 空对象模式
 
-
-#### 中介者模式
-
-
-
-#### 备忘录模式
-
-
-
-#### 状态模式
-
-
-
-#### 空对象模式
-
-
-
-
-
-#### 访问者模式
+##### 访问者模式
 
 
 
