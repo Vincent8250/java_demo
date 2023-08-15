@@ -1,4 +1,4 @@
-# Java
+Java
 
 [笔记推荐](https://github.com/Snailclimb/JavaGuide/blob/main/README.md)
 
@@ -102,7 +102,9 @@ int n = i;   //拆箱
 
 
 
-### 面向对象
+### 基础难点
+
+#### 接口和抽象类
 
 > **接口和抽象类有什么共同点和区别？**
 >
@@ -120,7 +122,7 @@ int n = i;   //拆箱
 > - 接口中的成员变量只能是 `public static final` 类型的  不能被修改且必须有初始值
 >   抽象类的成员变量默认default  可在子类中被重新定义  也可被重新赋值
 
-
+#### 深拷贝 浅拷贝
 
 > **深拷贝和浅拷贝区别了解吗？什么是引用拷贝？**
 >
@@ -142,9 +144,9 @@ int n = i;   //拆箱
 >
 > 
 
+#### Object
 
-
-> Object中的常用方法？
+> **Object中的常用方法？**
 
 ~~~java
 /**
@@ -193,14 +195,14 @@ public final void wait() throws InterruptedException
 protected void finalize() throws Throwable { }
 ~~~
 
-
+#### hashCode()
 
 > **hashCode() 有什么用？**
 >
 > 获取哈希码 哈希码的作用是确定该对象在哈希表中的索引位置
 > Object的hashCode()方法是本地方法 也就是用C语言或C++实现的
 
-
+#### hashCode
 
 > **为什么要有 hashCode？**
 >
@@ -219,6 +221,53 @@ protected void finalize() throws Throwable { }
 >
 > 如果重写equals()时没有重写hashCode()方法的话
 > 就可能会导致equals方法判断是相等的两个对象hashCode值却不相等。
+
+
+
+#### String StringBuffer StringBuilder
+
+> **String、StringBuffer、StringBuilder 的区别？**
+>
+> String 是不可变更的 因为string类是final修饰的 并且最终存储字符的数组也是final修饰的
+> StringBuilder 非线成安全的字符串构建器
+> StringBuffer 线成安全的字符串构建器
+>
+> 每次对 `String` 类型进行改变的时候，都会生成一个新的 `String` 对象，然后将指针指向新的 `String` 对象。
+> `StringBuffer` 每次都是对 `StringBuffer` 对象本身进行操作，而不是生成新的对象并改变对象引用。
+> 相同情况下使用 `StringBuilder` 相比使用 `StringBuffer` 仅能获得 10%~15% 左右的性能提升，但却要冒多线程不安全的风险。
+>
+> 1. 操作少量的数据: 适用 `String`
+> 2. 单线程操作字符串缓冲区下操作大量数据: 适用 `StringBuilder`
+> 3. 多线程操作字符串缓冲区下操作大量数据: 适用 `StringBuffer`
+
+#### 字符串拼接
+
+> **字符串拼接用“+” 还是 StringBuilder?**
+>
+> Java语言中特意为string重载了+和+=两个运算符
+> str1+str等价于 StringBuilder调用append()再调用toString()
+> ![image-20230815231803154](img/image-20230815231803154.png)
+>
+> 需要注意的是 这个StringBuilder并不是单独的一个变量
+> 所以如果是循环中使用的话 因为每次循环+都是单独的一次操作 所以都会生成一个单独的StringBuilder
+> 这样会比较浪费内存影响性能
+
+#### 字符串常量池
+
+> **字符串常量池的作用了解吗？**
+>
+> JVM 为了提升性能和减少内存消耗 针对字符串（String 类）专门开辟的一块区域
+> 主要目的是**为了避免字符串的重复创建**
+
+
+
+### 异常处理
+
+Java 异常类层次结构图
+
+![Java异常体系](img/Java异常体系.png)
+
+
 
 
 
