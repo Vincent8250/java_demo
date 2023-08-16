@@ -261,11 +261,66 @@ protected void finalize() throws Throwable { }
 
 
 
+#### 反射
+
+> **获取class对象的三种方法**
+
+~~~java
+public class Get {
+    //获取反射机制三种方式
+    public static void main(String[] args) throws ClassNotFoundException {
+        //方式一(通过建立对象)
+        Student stu = new Student();
+        Class classobj1 = stu.getClass();
+        
+        //方式二（所在通过路径-相对路径）
+        Class classobj2 = Class.forName("fanshe.Student");
+        
+        //方式三（通过类名）
+        Class classobj3 = Student.class;
+    }
+}
+~~~
+
+
+
 ### 异常处理
 
 Java 异常类层次结构图
 
 ![Java异常体系](img/Java异常体系.png)
+
+
+
+#### Throwable
+
+> **Throwable类常用方法有哪些**
+>
+> - `String getMessage()`: 返回异常发生时的简要描述
+> - `String toString()`: 返回异常发生时的详细信息
+> - `String getLocalizedMessage()`: 返回异常对象的本地化信息。使用 `Throwable` 的子类覆盖这个方法，可以生成本地化信息。如果子类没有覆盖该方法，则该方法返回的信息与 `getMessage()`返回的结果相同
+> - `void printStackTrace()`: 在控制台上打印 `Throwable` 对象封装的异常信息
+
+
+
+#### Exception Error
+
+> **Exception 和 Error 有什么区别？**
+>
+> - **`Exception`** :程序本身可以处理的异常，可以通过 `catch` 来进行捕获。`Exception` 又可以分为 Checked Exception (受检查异常，必须处理) 和 Unchecked Exception (不受检查异常，可以不处理)。
+> - **`Error`**：`Error` 属于程序无法处理的错误 ，~~我们没办法通过 `catch` 来进行捕获~~不建议通过`catch`捕获 。例如 Java 虚拟机运行错误（`Virtual MachineError`）、虚拟机内存不够错误(`OutOfMemoryError`)、类定义错误（`NoClassDefFoundError`）等 。这些异常发生时，Java 虚拟机（JVM）一般会选择线程终止。
+
+
+
+#### Checked Exception
+
+> **Checked Exception 和 Unchecked Exception 有什么区别？**
+>
+> Checked Exception 即受检查异常 ，Java 代码在编译过程中，如果受检查异常没有被 `catch`或者`throws` 关键字处理的话，就没办法通过编译。
+>
+> Unchecked Exception 即不受检查异常 ，Java 代码在编译过程中 ，我们即使不处理不受检查异常也可以正常通过编译。
+>
+> `RuntimeException` 及其子类都统称为非受检查异常  其他的`Exception`类及其子类都属于受检查异常
 
 
 
@@ -310,22 +365,58 @@ Java程序通过 数据库连接驱动 就可连接上数据库
 
 因此，建议使用`com.mysql.cj.jdbc.Driver`，特别是在使用新的MySQL版本（5.7及以上）时，以支持更广泛的字符集、更多的时区和其他新特性。
 
-
-
-
-
-## IO操作
-
 ### IO
 
-**概念：** IO是计算机中Input和Output简称  即输入和输出
+
+
+#### 概念
+
+ IO是计算机中Input和Output简称  即输入和输出
 `输入流来读数据   输出流来写数据`
 
 简单的可以将Java中的流分为四类 流的四种形式：
 
 ![](img\Java流的形式.png)
 
-字节写入：
+- BIO：Block IO 同步阻塞式 IO，就是我们平常使用的传统 IO，它的特点是模式简单使用方便，并发处理能力低。
+- NIO：Non IO 同步非阻塞 IO，是传统 IO 的升级，客户端和服务器端通过 Channel（通道）通讯，实现了多路复用。
+- AIO：Asynchronous IO 是 NIO 的升级，也叫 NIO2，实现了异步非堵塞 IO ，异步 IO 的操作基于事件和回调机制。
+
+##### BIO
+
+BIO 属于同步阻塞 IO 模型 
+同步阻塞 IO 模型中，应用程序发起 read 调用后，会一直阻塞，直到内核把数据拷贝到用户空间。
+在客户端连接数量不高的情况下，是没问题的。
+但是，当面对十万甚至百万级连接的时候，传统的 BIO 模型是无能为力的。
+
+<img src="img/image-20230816174215525.png" alt="image-20230816174215525" style="zoom: 50%;" />
+
+##### NIO
+
+Java 中的 NIO 于 Java 1.4 中引入，对应 `java.nio` 包，提供了 `Channel` , `Selector`，`Buffer` 等抽象。
+它是支持面向缓冲的，基于通道的 I/O 操作方法。 对于高负载、高并发的（网络）应用，应使用 NIO 。
+
+Java 中的 NIO 可以看作是 **I/O 多路复用模型**。也有很多人认为，Java 中的 NIO 属于同步非阻塞 IO 模型。
+
+同步非阻塞模型：
+<img src="img/image-20230816174419732.png" alt="image-20230816174419732" style="zoom:50%;" />
+
+同步非阻塞 IO 模型中，应用程序会一直发起 read 调用，等待数据从内核空间拷贝到用户空间的这段时间里，线程依然是阻塞的，直到在内核把数据拷贝到用户空间。
+相比于同步阻塞 IO 模型，同步非阻塞 IO 模型确实有了很大改进。通过轮询操作，避免了一直阻塞。
+但是，这种 IO 模型同样存在问题：应用程序不断进行 I/O 系统调用轮询数据是否已经准备好的过程是十分消耗 CPU 资源的。
+
+I/O 多路复用模型：
+<img src="img/image-20230816174642123.png" alt="image-20230816174642123" style="zoom:50%;" />
+
+IO 多路复用模型中，线程首先发起 select 调用，询问内核数据是否准备就绪，等内核把数据准备好了，用户线程再发起 read 调用。read 调用的过程（数据从内核空间 -> 用户空间）还是阻塞的。
+
+
+
+
+
+#### 代码实现 - BIO
+
+##### 字节写入
 
 ```java
 //输出流
@@ -343,7 +434,7 @@ public static void outputStream() throws IOException{
 }
 ```
 
-字节读取：
+##### 字节读取
 
 ```java
 //输入流
@@ -362,7 +453,7 @@ public static void inputStream() throws IOException{
 }
 ```
 
-字符写入：
+##### 字符写入
 
 ```java
     //字符流
@@ -380,7 +471,7 @@ public static void inputStream() throws IOException{
     }
 ```
 
-字符读取：
+##### 字符读取
 
 ```java
     public static void inputStreamReader() throws IOException{
@@ -405,29 +496,6 @@ Java缓冲流是在**输入流**和**输出流**之上进行了一次包装（�
 
 字节缓冲流类：**BufferedInputStream 和** **BufferedOutputStream**
 字符缓冲流类：**BufferedReader 和** **BufferedWriter**
-
-- BIO：Block IO 同步阻塞式 IO，就是我们平常使用的传统 IO，它的特点是模式简单使用方便，并发处理能力低。
-- NIO：Non IO 同步非阻塞 IO，是传统 IO 的升级，客户端和服务器端通过 Channel（通道）通讯，实现了多路复用。
-- AIO：Asynchronous IO 是 NIO 的升级，也叫 NIO2，实现了异步非堵塞 IO ，异步 IO 的操作基于事件和回调机制。
-
-### New IO
-
-因为传统的IO是阻塞而且低效的  JDK 1.4 提供了NIO（New IO）API
-
-#### 缓冲区
-
-NIO中引入了缓冲区的概念，缓冲区作为传输数据的基本单位块，所有对数据的操作都是基于将数据移进/移出缓冲区而来；
-读数据的时候从缓冲区中取，写的时候将数据填入缓冲区。
-尽管传统JavaIO中也有相应的缓冲区过滤器流（BufferedInputStream等），但是移进/移出的操作是由程序员来包装的，它本质是对数据结构化和积累达到处理时的方便，并不是一种提高I/O效率的措施。
-NIO的缓冲区则不然，对缓冲区的移进/移出操作是由底层操作系统来实现的。
-
-简单理解就是 `NIO的缓冲区是由底层操作系统来实现的 比传统的更高效`
-
-#### 阻塞
-
-传统的IO是阻塞的 单线程下IO操作是阻塞的
-而NIO的同步非阻塞模式  是当一个线程取读取数据 不论它能不能读取到数据 他都不会阻塞
-阻塞的情况
 
 
 
@@ -457,32 +525,7 @@ NIO的缓冲区则不然，对缓冲区的移进/移出操作是由底层操作�
 
 
 
-## 注解反射
 
-### 注解
-
-
-
-### 反射
-
-获取class对象的三种方法
-
-~~~java
-public class Get {
-    //获取反射机制三种方式
-    public static void main(String[] args) throws ClassNotFoundException {
-        //方式一(通过建立对象)
-        Student stu = new Student();
-        Class classobj1 = stu.getClass();
-        
-        //方式二（所在通过路径-相对路径）
-        Class classobj2 = Class.forName("fanshe.Student");
-        
-        //方式三（通过类名）
-        Class classobj3 = Student.class;
-    }
-}
-~~~
 
 
 
