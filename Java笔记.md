@@ -1,6 +1,10 @@
 Java
 
-[笔记推荐](https://github.com/Snailclimb/JavaGuide/blob/main/README.md)
+[笔记推荐 - JavaGuide](https://github.com/Snailclimb/JavaGuide/blob/main/README.md)
+
+[笔记推荐 - 《大厂面试指北》](https://github.com/NotFound9/interviewGuide)
+
+
 
 
 
@@ -533,12 +537,40 @@ Java缓冲流是在**输入流**和**输出流**之上进行了一次包装（�
 
 ### 集合概述
 
+#### 概念
+
+Java集合框架图
+![image-20230816230728970](img/image-20230816230728970.png)
+
+
+
 Java中的集合类可以分为两大类：
 
 - Collection接口：Collection是一个基本的集合接口  `Collection中可以容纳一组集合元素`（Element）
+  - List接口：存储的元素是有序的、可重复的
+    - ArrayList：数组
+    - Vector：数组 线程安全的 现在基本不用
+    - LinkedList：双向链表(JDK1.6 之前为循环链表，JDK1.7 取消了循环)
+  - Set接口：存储的元素无序、不可重复的
+    - HashSet：基于HashMap实现的 底层采用HashMap来保存元素
+    - LinkedHashSet：LinkedHashSet是HashSet的子类，并且其内部是通过LinkedHashMap来实现的。
+      有点类似于我们之前说的LinkedHashMap其内部是基于HashMap实现一样，不过还是有一点点区别的
+    - TreeSet：红黑树(自平衡的排序二叉树)
+  - Queue接口：存储的元素是有序的、可重复的、先进先出
+    - PriorityQueue：数组来实现二叉堆
+    - ArrayQueue：数组 + 双指针
 - Map接口：`Map提供键（key）到值（value）的映射`  一个Map中不能包含相同的键  每个键只能映射一个值
+  Map没有继承Collection接口  与Collection是并列关系
+  - HashMap：
+    - JDK1.8 之前HashMap由数组+链表组成的，数组是HashMap的主体，链表则是主要为了解决哈希冲突而存在的（“拉链法”解决冲突）。
+    - JDK1.8 以后在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树）时，将链表转化为红黑树，以减少搜索时间
+  - LinkedHashMap：LinkedHashMap继承自HashMap所以它的底层仍然是基于拉链式散列结构即由数组和链表或红黑树组成。另外LinkedHashMap在上面结构的基础上，增加了一条双向链表，使得上面的结构可以保持键值对的插入顺序。同时通过对链表进行相应的操作，实现了访问顺序相关逻辑。
+  - Hashtable：数组+链表组成的，数组是Hashtable的主体，链表则是主要为了解决哈希冲突而存在的
+  - TreeMap：红黑树（自平衡的排序二叉树）
 
-Map没有继承Collection接口  与Collection是并列关系
+
+
+#### 图述
 
 两个接口的结构概述：
 
@@ -630,7 +662,7 @@ while(var2.hasNext()) {
 
 
 
-#### Collection
+#### 源码解析
 
 **概述：**Collection是Java集合容器的顶级接口 和它并列的还有Map映射容器
 Collection继承了Iterable 所以Java中的集合容器都是可迭代的
@@ -687,18 +719,18 @@ default Stream<E> parallelStream() {
 
 
 
-#### List
+### List
 
-**概述：**List 接口继承于 Collection 接口  `它可以定义一个允许重复的有序集合`
+概述：List 接口继承于 Collection 接口  `它可以定义一个允许重复的有序集合`
 
-##### 特性
+#### 特性
 
 * 有序 可以重复 (顺序为存入的顺序)
 * 允许多个null元素对象
 * 可以使用迭代器`Iterator`取对象 也可以通过索引下标 
 * List没有直接实现迭代器Iterator 而是实现了ListIterator
 
-##### 源码解析
+#### 源码解析
 
 接口分析：
 
@@ -1218,9 +1250,9 @@ public E set(int index, E element) {
 
 
 
+#### 其他
 
-
-#### ~~Vector~~
+##### ~~Vector~~
 
 概述：`底层数据结构是数组`  **Vector 是线程安全的动态数组**   Vector 是同步的  它的操作与 ArrayList 几乎一样
 
@@ -1231,7 +1263,7 @@ public E set(int index, E element) {
 - **只要是关键性的操作，方法前面都加了synchronized关键字，来保证线程的安全性**。 
 - **Vector的扩容机制是1倍**
 
-#### ~~Stack~~
+##### ~~Stack~~
 
 概述：`Stack实现的是一个后进先出的堆栈` Stack 继承自 Vector 
 Stack 提供 5 个额外的方法使得 Vector 得以被当作堆栈使用 
@@ -1241,18 +1273,30 @@ Stack 提供 5 个额外的方法使得 Vector 得以被当作堆栈使用
 - empty 方法测试堆栈是否为空
 - search 方法检测一个元素在堆栈中的位置
 
+#### 知识点
+
+> **ArrayList 与 LinkedList 区别?**
+>
+> array底层结构是数组 linke底层结构是链表 他们的区别最主要也是因为他们的底层数据结构的问题
+> 数组结构决定了array的查询修改快 增删慢  链表结构决定了linke的查询修改慢 增删快
+> 但实际上array的增删慢是相对而言 其实也不慢 而且合理的使用尾插法和尾删法 以及在创建得时候预估好长度
+> array的效率是远远大于linked的 大多数情况下也都是使用的array很少有使用linked的
 
 
-#### Set
 
-- 概述：`Set是一种不包含重复的元素的 Collection 无序` 即任意的两个元素 e1 和 e2 都有 e1.equals(e2)=false  Set最多有一个 null 元素
-  `Set 集合中的去重和 hashcode 与 equals 方法直接相关` 通过这两个方法来判断两个对象是否相等
-  关于Set的具体实现  我就不做过多介绍 因为HashSet的底层是HashMap的实现 很多功能都是直接套用的HashMap
-  TreeSet也一样 基本是TreeMap的套用
-- 特性：
-  - 无序 不可重复 (`元素的位置是固定的 但顺序不是固定的`)
-  - 最多允许一个null元素对象
-  - 取对象时只能通过迭代器 `Iterator` 因为没有索引下标
+
+
+### Set
+
+概述：`Set是一种不包含重复的元素的 Collection 无序` 即任意的两个元素 e1 和 e2 都有 e1.equals(e2)=false  Set最多有一个 null 元素
+`Set 集合中的去重和 hashcode 与 equals 方法直接相关` 通过这两个方法来判断两个对象是否相等
+关于Set的具体实现  我就不做过多介绍 因为HashSet的底层是HashMap的实现 很多功能都是直接套用的HashMap
+TreeSet也一样 基本是TreeMap的套用
+
+特性
+- 无序 不可重复 (`元素的位置是固定的 但顺序不是固定的`)
+- 最多允许一个null元素对象
+- 取对象时只能通过迭代器 `Iterator` 因为没有索引下标
 
 
 
@@ -2569,6 +2613,15 @@ JAVA实现Cloneable接口 重写clone()
 
 - 和适配器模式的区别：适配器模式主要改变所考虑对象的接口，而代理模式不能改变所代理类的接口。
 - 和装饰器模式的区别：装饰器模式为了增强功能，而代理模式是为了加以控制。
+
+> **JDK 动态代理和 CGLIB 动态代理对比**
+>
+> 1. JDK 动态代理只能代理实现了接口的类或者直接代理接口 而 CGLIB 可以代理未实现任何接口的类
+>    另外 CGLIB 动态代理是通过生成一个被代理类的子类来拦截被代理类的方法调用
+>    因此不能代理声明为 final 类型的类和方法
+> 2. 就二者的效率来说，大部分情况都是 **JDK 动态代理更优秀**，随着 JDK 版本的升级，这个优势更加明显。
+
+
 
 ##### 理解
 
