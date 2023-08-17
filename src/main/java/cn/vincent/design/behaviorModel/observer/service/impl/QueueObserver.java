@@ -48,6 +48,4 @@ public class QueueObserver implements Observer {
         // 投放消息到阻塞队列中
         eventEntities.offer(msg);
     }
-
-
 }
