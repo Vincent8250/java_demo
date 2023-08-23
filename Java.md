@@ -16,7 +16,7 @@ Java
 - JRE是运行环境 JRE包含Java程序的运行基础JVM
 - JVM是虚拟机
 
-![image-20230803150328429](Java笔记.assets/image-20230803150328429.png)
+![image-20230803150328429](Java.assets/image-20230803150328429.png)
 
 #### 编译过程
 
@@ -24,13 +24,13 @@ Java
 
 再通过解释器或者JIT将字节码文件  解释为机器可以理解的机器码指令
 
-![image-20230814211350425](Java笔记.assets/image-20230814211350425.png)
+![image-20230814211350425](Java.assets/image-20230814211350425.png)
 
 需要注意的是在将字节码文件解释为机器码时  并不全是走的解释器也会走JIT
 经常被调用的代码（也就是热点代码） 会进入JIT（即时编译器） 编译后的机器码会被保留下来
 所以说Java时编译与解释共存的语言
 
-![image-20230814211958826](Java笔记.assets/image-20230814211958826.png)
+![image-20230814211958826](Java.assets/image-20230814211958826.png)
 
 
 
@@ -140,11 +140,11 @@ int n = i;   //拆箱
 >
 > 浅克隆：
 >
-> <img src="/img/image-20230809235746554.png" alt="image-20230809235746554" style="zoom:67%;" />
+> <img src="/Java.assets/image-20230809235746554.png" alt="image-20230809235746554" style="zoom:67%;" />
 >
 > 深克隆：
 >
-> <img src="/img/image-20230809235854886.png" alt="image-20230809235854886" style="zoom:67%;" />
+> <img src="/Java.assets/image-20230809235854886.png" alt="image-20230809235854886" style="zoom:67%;" />
 >
 > 
 
@@ -250,7 +250,7 @@ protected void finalize() throws Throwable { }
 >
 > Java语言中特意为string重载了+和+=两个运算符
 > str1+str等价于 StringBuilder调用append()再调用toString()
-> ![image-20230815231803154](Java笔记.assets/image-20230815231803154.png)
+> ![image-20230815231803154](Java.assets/image-20230815231803154.png)
 >
 > 需要注意的是 这个StringBuilder并不是单独的一个变量
 > 所以如果是循环中使用的话 因为每次循环+都是单独的一次操作 所以都会生成一个单独的StringBuilder
@@ -314,7 +314,7 @@ Date API
 
 Java 异常类层次结构图
 
-![Java异常体系](Java笔记.assets/Java异常体系.png)
+![Java异常体系](Java.assets/Java异常体系.png)
 
 
 
@@ -415,7 +415,7 @@ BIO 属于同步阻塞 IO 模型
 在客户端连接数量不高的情况下，是没问题的。
 但是，当面对十万甚至百万级连接的时候，传统的 BIO 模型是无能为力的。
 
-<img src="img/image-20230816174215525.png" alt="image-20230816174215525" style="zoom: 50%;" />
+<img src="Java.assets/image-20230816174215525.png" alt="image-20230816174215525" style="zoom: 50%;" />
 
 
 
@@ -427,14 +427,14 @@ Java 中的 NIO 于 Java 1.4 中引入，对应 `java.nio` 包，提供了 `Chan
 Java 中的 NIO 可以看作是 **I/O 多路复用模型**。也有很多人认为，Java 中的 NIO 属于同步非阻塞 IO 模型。
 
 同步非阻塞模型：
-<img src="img/image-20230816174419732.png" alt="image-20230816174419732" style="zoom:50%;" />
+<img src="Java.assets/image-20230816174419732.png" alt="image-20230816174419732" style="zoom:50%;" />
 
 同步非阻塞 IO 模型中，应用程序会一直发起 read 调用，等待数据从内核空间拷贝到用户空间的这段时间里，线程依然是阻塞的，直到在内核把数据拷贝到用户空间。
 相比于同步阻塞 IO 模型，同步非阻塞 IO 模型确实有了很大改进。通过轮询操作，避免了一直阻塞。
 但是，这种 IO 模型同样存在问题：应用程序不断进行 I/O 系统调用轮询数据是否已经准备好的过程是十分消耗 CPU 资源的。
 
 I/O 多路复用模型：
-<img src="img/image-20230816174642123.png" alt="image-20230816174642123" style="zoom:50%;" />
+<img src="Java.assets/image-20230816174642123.png" alt="image-20230816174642123" style="zoom:50%;" />
 
 IO 多路复用模型中，线程首先发起 select 调用，询问内核数据是否准备就绪，等内核把数据准备好了，用户线程再发起 read 调用。read 调用的过程（数据从内核空间 -> 用户空间）还是阻塞的。
 
@@ -449,13 +449,13 @@ AIO 也就是 NIO 2。Java 7 中引入了 NIO 的改进版 NIO 2,它是异步 IO
 异步 IO 是基于事件和回调机制实现的，也就是应用操作之后会直接返回，不会堵塞在那里，当后台处理完成，操作系统会通知相应的线程进行后续的操作。
 
 异步IO模型：
-<img src="img/image-20230817102956655.png" alt="image-20230817102956655" style="zoom:50%;" />
+<img src="Java.assets/image-20230817102956655.png" alt="image-20230817102956655" style="zoom:50%;" />
 
 目前来说 AIO 的应用还不是很广泛。Netty 之前也尝试使用过 AIO，不过又放弃了。这是因为，Netty 使用了 AIO 之后，在 Linux 系统上的性能并没有多少提升。
 
 
 
-![image-20230817103128143](Java笔记.assets/image-20230817103128143.png)
+![image-20230817103128143](Java.assets/image-20230817103128143.png)
 
 
 
@@ -579,7 +579,7 @@ Java缓冲流是在**输入流**和**输出流**之上进行了一次包装（�
 #### 概念
 
 Java集合框架图
-![image-20230816230728970](Java笔记.assets/image-20230816230728970.png)
+![image-20230816230728970](Java.assets/image-20230816230728970.png)
 
 
 
@@ -1787,7 +1787,7 @@ segment 的长度也决定了 ConcurrentHashMap 的并发程度
 
 ###### 流程
 
-![image-20230817155807360](Java笔记.assets/image-20230817155807360.png)
+![image-20230817155807360](Java.assets/image-20230817155807360.png)
 
 
 
@@ -1808,7 +1808,7 @@ AQS 的全称为 `AbstractQueuedSynchronizer` ，翻译过来的意思就是抽�
 
 简单来说AQS 为构建锁和同步器提供了一些通用功能的实现
 Java实现的锁 很多都是基于AbstractQueuedSynchronizer实现的 如ReentrantLock就是（是不是全部我不确认）
-![image-20230817160622271](Java笔记.assets/image-20230817160622271.png)
+![image-20230817160622271](Java.assets/image-20230817160622271.png)
 
 
 
@@ -1820,10 +1820,10 @@ AQS中就是CLH队列
 CLH(Craig,Landin,and Hagersten) 队列是一个虚拟的双向队列（虚拟的双向队列即不存在队列实例，仅存在结点之间的关联关系）。AQS 是将每条请求共享资源的线程封装成一个 CLH 锁队列的一个结点（Node）来实现锁的分配。在 CLH 同步队列中，一个节点表示一个线程，它保存着线程的引用（thread）、 当前节点在队列中的状态（waitStatus）、前驱节点（prev）、后继节点（next）。
 
 结构图：
-<img src="img/image-20230817160935296.png" alt="image-20230817160935296" style="zoom:80%;" />
+<img src="Java.assets/image-20230817160935296.png" alt="image-20230817160935296" style="zoom:80%;" />
 
 原理图：
-<img src="img/image-20230817161035235.png" alt="image-20230817161035235" style="zoom: 80%;" />
+<img src="Java.assets/image-20230817161035235.png" alt="image-20230817161035235" style="zoom: 80%;" />
 
 
 
@@ -2328,7 +2328,7 @@ public class SynchronizedDemo {
 6. 举例
 7. 相关的模式
 
-<img src="img/image-20230803150430618.png" alt="image-20230803150430618" style="zoom:80%;" />
+<img src="Java.assets/image-20230803150430618.png" alt="image-20230803150430618" style="zoom:80%;" />
 
 
 
@@ -2434,7 +2434,7 @@ public class SynchronizedDemo {
 
 工厂模式的目的是解决同一个接口下不同实体类的创建问题
 例如 厂商只需要告诉雪糕工厂需要生产什么雪糕 具体的雪糕如何生产就是雪糕工厂的工作
-<img src="img/image-20230809121223654.png" alt="image-20230809121223654" style="zoom:67%;" />
+<img src="Java.assets/image-20230809121223654.png" alt="image-20230809121223654" style="zoom:67%;" />
 
 ##### 代码实现
 
@@ -2536,7 +2536,7 @@ public static void main(String[] args) {
 ##### 应用
 
 比如系统中有用到OSS，但是考虑到后期后期可能会切换服务商。那么就可以使用抽象工厂模式来处理，更换服务商的时候只需要在抽象工厂切换就可以一整套的切换，之所以不用工厂模式是因为OSS包含很多服务，**工厂模式只是针对具体实现类的工厂，抽象工厂则是整个服务的工厂，工厂的工厂。**
-<img src="img/image-20230809123327672.png" alt="image-20230809123327672" style="zoom:67%;" />
+<img src="Java.assets/image-20230809123327672.png" alt="image-20230809123327672" style="zoom:67%;" />
 
 ##### 代码实现
 
@@ -2722,11 +2722,11 @@ private static void show(Car car) {
 
 浅克隆：
 
-<img src="/img/image-20230809235746554.png" alt="image-20230809235746554" style="zoom:67%;" />
+<img src="/Java.assets/image-20230809235746554.png" alt="image-20230809235746554" style="zoom:67%;" />
 
 深克隆：
 
-<img src="/img/image-20230809235854886.png" alt="image-20230809235854886" style="zoom:67%;" />
+<img src="/Java.assets/image-20230809235854886.png" alt="image-20230809235854886" style="zoom:67%;" />
 
 
 
@@ -3195,7 +3195,174 @@ JAVA 中的 iterator 就用到了迭代器模式
 
 
 
-## 内存模型
+## 虚拟机
+
+[参考文章](https://blog.csdn.net/qq_48435252/article/details/123697193)
+
+### 概念
+
+- JVM是一种用于计算设备的规范 它是一个虚构出来的计算机
+  是通过在实际的计算机上仿真模拟各种计算机功能来实现的
+- Java程序依赖JVM不依赖实际的计算机 所以可以实现多平台运行
+  这种设计思想
+
+<img src="Java.assets/image-20230823155736957.png" alt="image-20230823155736957" style="zoom: 80%;" />
+
+
+
+### 类加载子系统
+
+加载—>链接—>初始化
+
+<img src="Java.assets/image-20230823155844925.png" alt="image-20230823155844925" style="zoom:67%;" />
+
+#### 概念
+
+- 类加载子系统负责从文件系统或者网络中加载Class文件（Class文件在开头有特定标识）
+- 类加载器(Class Loader)只负责class文件的加载
+  至于是否可以运行 由执行引擎（Execution Engine）决定
+- 加载的类信息存放于一块称为方法区的内存空间
+  除了类信息之外 方法区还会存放运行时常量池信息 可能还包括字符串字面量和数字常量
+  （这部分常量信息是Class文件中常量池部分的内存映射）
+
+#### 过程
+
+<img src="Java.assets/image-20230823160146586.png" alt="image-20230823160146586" style="zoom:50%;" />
+
+- 加载：
+  - 将类的.class文件中的二进制数据读入到内存中
+    将其放在运行时数据区的方法区内
+  - 在堆区创建一个java.lang.Class对象
+  - 加载的最终产品是位于堆区中的Class对象：Class对象封装了类在方法区内的数据结构
+    并且向Java程序员提供了访问方法区内的数据结构的接口
+- 连接：
+  - 验证：在于确保Class文件的字节流中包含信息符合当前JVM规范要求
+    保证被加载类的正确性 不会危害虚拟机自身安全
+    主要包含：文件格式验证、源数据验证、字节码验证、符号引用验证
+  - 准备
+    - 为类变量（static）分配内存并且设置初始值
+    - 不包含用final修饰的static 因为final在编译的时候就会分配了 准备阶段会显式初始化
+    - 不会为实例变量分配初始化 类变量会分配在方法去中
+      而实例变量是会随着对象一起分配到java堆中
+  - 解析：将常量池内的符号引用转换为直接引用的过程
+- 初始化
+  ![image-20230823163403548](Java.assets/image-20230823163403548.png)
+
+
+
+### 类加载器类型
+
+- 启动类加载器
+  负责加载JAVA_HOME/lib目录下的可以被虚拟机识别（通过文件名称，比如rt.jar``tools.jar）的字节码文件。与之对应的是java.lang.ClassLoader类
+- 扩展类加载器
+  负责加载JAVA_HOME/lib/ext目录下的的字节码文件。对应sun.misc.Launcher类 此类继承于启动类加载器ClassLoader
+- 应用程序类加载器
+  负责加载ClassPath路径下的字节码 也就是用户自己写的类。对应于sun.misc.Launcher.AppClassLoader类 此类继承于扩展类加载器Launcher
+- 用户自定义加载器
+  需要继承系统类加载器ClassLoader，并重写findClass方法。负责加载指定位置的字节码文件。通过类中的path变量指定。
+
+![image-20230823163717782](Java.assets/image-20230823163717782.png)
+
+
+
+### 双亲委派机制
+
+#### 概念
+
+> 如果一个类加载器收到了类加载的请求，它并不会自己加载，而是先把请求委托给父类的加载器执行
+> 如果父类加载器还有父类，则进一步向上委托，依次递归，请求到达最顶层的引导类加载器。
+> 如果顶层类的加载器加载成功，则成功返回。如果失败，则子加载器会尝试加载。直到加载成功。
+
+![image-20230823165234667](Java.assets/image-20230823165234667.png)
+
+#### 目的
+
+> 1. 防止危险代码的植入：比如我写了个跟String同包名的类 想要替换String
+>    但是双亲委派机制会优先使用更高级的类加载器加载 所以他会优先加载官方的String
+>    从而防止了危险代码的植入（防止替换官方类&防止重复加载）
+
+
+
+### 沙箱安全机制
+
+> Java安全模型的核心就是Java沙箱：沙箱主要限制系统资源访问
+> 沙箱机制将 Java 代码限定在虚拟机(JVM)特定的运行范围中，并且严格限制代码对本地系统资源访问，通过这样的措施来保证对代码的有效隔离，防止对本地系统造成破坏。
+>
+> 通过字节码校验器、类装载器来保证沙箱安全机制
+
+
+
+### 运行时数据区
+
+#### 概念
+
+> 一个进程对应一个jvm实例，一个运行时数据区，又包含多个线程，这些线程共享了方法区和堆，每个线程包含了程序计数器、本地方法栈和虚拟机栈。
+
+<img src="Java.assets/image-20230823172529487.png" alt="image-20230823172529487" style="zoom:67%;" />
+
+
+
+#### 程序计数器
+
+> 用来存储指向下一条指令的地址 也就是即将将要执行的指令代码 由执行引擎读取下一条指令
+>
+> - 它是一块很小的内存空间
+> - 每个线程都有它自己的程序计数器
+> - 任何时间一个线程都只有一个方法在执行
+
+<img src="Java.assets/image-20230823173834859.png" alt="image-20230823173834859" style="zoom: 50%;float:left;" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ![img](https://pic4.zhimg.com/80/v2-4761a25b7ac92e2d4c0fdfaeabef421b_720w.webp)
 
@@ -3211,36 +3378,6 @@ JVM内存模型包括线程共享区域和线程私有区域
     多线程情况下需要保证每个线程都是正确的执行 所以每个线程都有独立的程序计数器
 
 
-
-
-
-## 常用工具
-
-
-
-### JSON 解析
-
-#### Jackson
-
-
-
-#### FastJson
-
-
-
-
-
-### LomBok
-
-#### 常用注解
-
-
-
-### Buitl
-
-一般使用spring中的BeanUtils进行Bean赋值
-
-阿帕奇的BeanUtil性能太差了（因为里面做了很多判断 阿里的开发手册中也是提到不推荐使用阿帕奇的BeanUtil 相反Spring的BeanUtil则是简单的对名字相同的属性进行赋值 所以推荐使用spring的BeanUtil）
 
 
 
