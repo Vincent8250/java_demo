@@ -2,9 +2,9 @@ Java
 
 [笔记推荐 - JavaGuide](https://github.com/Snailclimb/JavaGuide/blob/main/README.md)
 
-[笔记推荐 - 《大厂面试指北》](https://github.com/NotFound9/interviewGuide)
+[笔记推荐 - 大厂面试指北](https://github.com/NotFound9/interviewGuide)
 
-
+[笔记推荐 - 面渣逆袭](https://tobebetterjavaer.com/sidebar/sanfene/nixi.html)
 
 
 
