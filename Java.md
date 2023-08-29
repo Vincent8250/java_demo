@@ -544,6 +544,23 @@ Java缓冲流是在**输入流**和**输出流**之上进行了一次包装（�
 
 
 
+### NIO
+
+![image-20230829150202957](Java.assets/image-20230829150202957.png)
+
+> 传统IO 基于字节流或字符流（如 FileInputStream、BufferedReader 等）进行文件读写
+> 以及使用 Socket 和 ServerSocketopen 进行网络传
+>
+> NIO 使用 通道（Channel）和缓冲区（Buffer）进行文件操作
+> 以及使用 SocketChannel 和 ServerSocketChannel 进行网络传输
+>
+> 实际上，“旧”的 I/O 包已经使用 NIO重新实现过 即使我们不显式的使用 NIO 编程也能从中受益
+
+NIO的优势主要体现在网络通讯中：
+NIO（New I/O）的设计目标是解决传统 I/O（BIO，Blocking I/O）在处理大量并发连接时的性能瓶颈。传统 I/O 在网络通信中主要使用阻塞式 I/O，为每个连接分配一个线程。当连接数量增加时，系统性能将受到严重影响，线程资源成为关键瓶颈。而 NIO 提供了非阻塞 I/O 和 I/O 多路复用，可以在单个线程中处理多个并发连接，从而在网络传输中显著提高性能。
+
+
+
 ### 序列化
 
 #### 概念
@@ -1750,18 +1767,22 @@ static final class Segment<K,V> extends ReentrantLock implements Serializable {
 
 
 
-##### 总结：
+##### 总结
 
-**简单的来说 ConcurrentHashMap 就是在HashMap的基础上又加了一层 segment**
-
+**JDK7的 ConcurrentHashMap 就是在HashMap的基础上又加了一层 segment**
 segment 的长度也决定了 ConcurrentHashMap 的并发程度
-
 而 ConcurrentHashMap 保证线程安全的办法是：
 
 - 成员变量通过 volatile 标识
-- put 的时候通过 CAS、synchronized 保证
+- put 的时候通过Lock保证
 
 ![image-20210830164734719](Java.assets\ConcurrentHashMap结构.png)
+
+
+
+**JDK8的 ConcurrentHashMap 舍弃了segment使用synchronized以及CAS无锁** 
+
+之所以不用Lock是因为JDK8的synchronized做了优化（锁升级）所以在性能上跟Lock差不多
 
 
 
@@ -2340,6 +2361,30 @@ public class SynchronizedDemo {
 
 - **可中断锁**：获取锁的过程中可以被中断，不需要一直等到获取锁之后 才能进行其他逻辑处理。`ReentrantLock` 就属于是可中断锁。
 - **不可中断锁**：一旦线程申请了锁，就只能等到拿到锁以后才能进行其他的逻辑处理。 `synchronized` 就属于是不可中断锁。
+
+
+
+## 网络编程
+
+### Socket
+
+
+
+### Netty
+
+#### 概述
+
+> Netty是一个异步事件驱动的网络应用程序框架 用于快速开发可维护的高性能协议服务器和客户端
+
+##### Netty的优点
+
+- API使用简单，学习成本低。
+- 功能强大，内置了多种解码编码器，支持多种协议。
+- 性能高，对比其他主流的NIO框架，Netty的性能最优。
+- 社区活跃，发现BUG会及时修复，迭代版本周期短，不断加入新的功能。
+- Dubbo、Elasticsearch都采用了Netty，质量得到验证
+
+#### 代码实现
 
 
 
@@ -3437,40 +3482,30 @@ JDK7的时候方法区在永久代 JDK8的时候因为永久代被移除 而是�
 
 
 
+## 开发工具
 
 
 
+### [Chocolatey](https://chocolatey.org/)
 
+> Chocolatey 是一个Windows下的命令行软件管理器
+> 可以让开发者像在Linux下使用yum命令来安装软件
+> 参考文档：[沉默王二：Chocolatey](https://tobebetterjavaer.com/gongju/choco.html#%E5%86%8D%E6%9D%A5%E4%BA%86%E8%A7%A3chocolatey)
 
+[Tabby](https://github.com/eugeny/tabby)
 
+> Tabby是一个开源的终端工具 它集成了 FTP 功能 并且跨平台
+> 参考文档：[沉默王二：Tabby](https://tobebetterjavaer.com/gongju/tabby.html)
 
+[WindTerm](https://github.com/kingToolbox/WindTerm/releases)
 
+> WindTerm也是一款开源的终端工具 集成了SFTP功能
+> 参考文档：[沉默王二：WindTerm](https://tobebetterjavaer.com/gongju/windterm.html#%E5%AE%89%E8%A3%85-windterm)
 
+[DBeaver](https://github.com/dbeaver/dbeaver)
 
-
-
-
-
-
-
-
-
-![img](https://pic4.zhimg.com/80/v2-4761a25b7ac92e2d4c0fdfaeabef421b_720w.webp)
-
-JVM内存模型包括线程共享区域和线程私有区域
-
-- 线程共享区域
-  - 堆：堆上存放对象和数组
-  - 方法区：方法区存放类的信息、静态变量和常量
-- 线程私有区域
-  - 虚拟机栈：虚拟机栈中是一个个栈帧 每个栈帧对应一个被调用的方法
-  - 本地方法栈：本地方法栈与虚拟机栈类似 区别是本地方法栈执行的是本地方法
-  - 程序计数器：程序计数器中保存的是当前需要执行的指令地址
-    多线程情况下需要保证每个线程都是正确的执行 所以每个线程都有独立的程序计数器
-
-
-
-
+> DBeaver 是一个开源跨平台的数据库管理工具
+> 参考文档：[沉默王二：DBeaver ](https://tobebetterjavaer.com/gongju/DBeaver.html#%E4%B8%80%E3%80%81%E5%85%B3%E4%BA%8E-dbeaver)
 
 
 
