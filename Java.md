@@ -3478,6 +3478,184 @@ JDK7的时候方法区在永久代 JDK8的时候因为永久代被移除 而是�
 
 
 
+## 项目架构
+
+### 认证授权
+
+#### 概念
+
+常规登录认证授权设计思路
+<img src="Java.assets/image-20230830103826740.png" alt="image-20230830103826740" style="zoom:67%;" />
+
+#### 代码实现
+
+结合 spring security 完成：[项目地址](https://github.com/Vincent8250/oa_al)
+
+1. 对登录和注册请求放行
+
+   ```java
+   .antMatchers("/login/toLogin").permitAll()
+   .antMatchers("/login/register").permitAll()
+   ```
+
+2. 在登录接口手动进行验证
+
+   1. ~~~java
+      // 通过用户名密码包装成UsernamePasswordAuthenticationToken
+      UsernamePasswordAuthenticationToken usernamePasswordToken = new UsernamePasswordAuthenticationToken(user.getUserName(), user.getPassword());
+      // 手动调用security的登录验证
+      Authentication authenticate = authenticationManager.authenticate(usernamePasswordToken);
+      // 获取验证后的对象
+      UserDetail loginUser = (UserDetail) authenticate.getPrincipal();
+      ~~~
+
+      authenticationManager.authenticate()方法最终会调用UserDetailsService中的loadUserByUsername具体的调用过程参考文章：[authenticate()调用loadUserByUsername()过程](https://blog.csdn.net/XuDream/article/details/125206700)
+
+   2. ~~~java
+      public UserDetails loadUserByUsername(String loginName) throws UsernameNotFoundException {
+          if (StrUtil.isBlank(loginName)) {
+              throw new RuntimeException("请输入登录名");
+          }
+          User dataUser = userFeignService.getUserByLoginName(loginName).getData();
+          if (Objects.isNull(dataUser)) {
+              throw new RuntimeException("登录名不存在");
+          }
+          List<String> list = dataUser.getRoles().stream().map(Role::getRoleCode).collect(Collectors.toList());
+          return new UserDetail(dataUser, list);
+      }
+      ~~~
+
+      loadUserByUsername方法只是取具体的用户信息
+
+   3. ~~~java
+      // 生成JWT
+      String jwt = JwtUtil.createJWT(loginUser.getUser().getUserId());
+      // 用户信息存入redis 还可以设置过期时间
+      redisUtil.set("login:" + loginUser.getUser().getUserId(), loginUser);
+      // 返回验证信息
+      Map<String, Object> head = new HashMap();
+      head.put("token", jwt);
+      ResponseVo response = new ResponseVo(ResponseCode.SUCCESS, "登录成功", head);
+      return response;
+      ~~~
+
+      根据用户信息生成jwt返回前端
+
+3. 前端接收到token之后 就算登录校验完成
+
+4. 前端再请求时带上token即可
+
+   1. 前端请求带上token 通过security的过滤器链完成请求权限校验
+      过滤器继承自OncePerRequestFilter（只过滤一次）
+
+      ~~~java
+      String token = request.getHeader("token");
+      if (StrUtil.isBlank(token)) {
+          filterChain.doFilter(request, response);
+          return;
+      }// 没有携带token直接放行 之后的过滤器肯定会报错 那么就说明用户没有登录
+      ~~~
+
+   2. 通过token解析出userid
+
+      ~~~java
+      String userid;
+      try {
+          Claims claims = JwtUtil.parseJWT(token);
+          userid = claims.getSubject();
+      } catch (Exception e) {
+          resolver.resolveException(request, response, null, new ResponseStatusException(HttpStatus.BAD_GATEWAY, "token无效，请重新登录！"));
+          return;
+      }
+      ~~~
+
+   3. 通过userid从redis中取用户信息
+
+      ~~~java
+      UserDetail loginUser = (UserDetail) redisUtil.get("login:" + userid);
+      if (ObjectUtil.isEmpty(loginUser)) {
+          resolver.resolveException(request, response, null, new ResponseStatusException(HttpStatus.BAD_GATEWAY, "用户未登录，请登录！"));
+          return;
+      }
+      ~~~
+
+   4. 将用户信息存入上下文
+
+      ~~~java
+      //存入SecurityContextHolder上下文当中
+      //这里必须得使用三个参数的authentication 第三个参数为授权 也就是用户是啥身份
+      Authentication authentication = new UsernamePasswordAuthenticationToken(loginUser, null, loginUser.getAuthorities());
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+      ~~~
+
+5. 到这一步 用户的请求已经通过了 接下来要做的是授权
+   其实上面在redis中存储用户信息的时候就存入了用户的身份信息
+   在过滤器的时候也设置了用户的身份信息 接下来就是根据用户的身份信息和请求资源进行授权
+
+   1. 自定义安全数据源 实现FilterInvocationSecurityMetadataSource接口 **返回当前请求所需权限**
+
+      ~~~java
+      // 获取请求地址
+      String requestUrl = ((FilterInvocation) object).getRequestUrl();
+      // 通过请求地址获取角色列表
+      ResponseVo<List<Role>> result = resourceService.getRoleByResource("/auth-service" + requestUrl);
+      List<Role> roles = result.getData();
+      // 如果角色列表为空 表明当前请求未分配权限 所以放开请求
+      if (roles == null || roles.size() == 0) {
+          return null;
+      }
+      // 封装成安全元数据源
+      String[] roleCodes = new String[roles.size()];
+      roles.stream().map(Role::getRoleCode).collect(Collectors.toList()).toArray(roleCodes);
+      return SecurityConfig.createList(roleCodes);
+      ~~~
+
+   2. 自定义访问决策管理器 实现AccessDecisionManager接口 **判断当前用户是否有当前资源的请求权限**
+
+      ~~~java
+      public void decide(Authentication authentication, Object object, Collection<ConfigAttribute> configAttributes) throws AccessDeniedException, InsufficientAuthenticationException {
+          Iterator<ConfigAttribute> iterator = configAttributes.iterator();
+          while (iterator.hasNext()) {
+              ConfigAttribute ca = iterator.next();
+              //当前请求需要的权限
+              String needRole = ca.getAttribute();
+              //当前用户所具有的权限
+              Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+              for (GrantedAuthority authority : authorities) {//循环判断 如果符合直接返回
+                  if (authority.getAuthority().equals(needRole)) {
+                      return;
+                  }
+              }
+          }
+          throw new AccessDeniedException("权限不足!");
+      }
+      ~~~
+
+6. 到此整个请求流程结束
+
+#### 总结
+
+上面的代码实现部分是基于单体springboot项目搭建的
+按照微服务的架构实现的话 实际思路差不多不过就是把上面的登录认证放在了auth-service中
+其他的像user、order服务中也需要引入security模块 不过只需要加上token校验过滤器就可以了
+直接解析token 将redis中的用户信息存入上下文中即可
+
+微服务架构的情况下还可以优化一下
+比如：我在gateway中加了一个过滤器 校验是否存在token来减少恶意请求服务器的压力
+![image-20230830142946017](Java.assets/image-20230830142946017.png)
+
+
+
+### 流程引擎
+
+
+
+
+
+
+
+
+
 
 
 
