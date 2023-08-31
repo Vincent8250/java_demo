@@ -2455,15 +2455,51 @@ private void unparkSuccessor(Node node) {
 
 ##### CAS
 
+###### 概念
 
+CAS的全称是：比较并交换（Compare And Swap）
+在CAS中 有这样三个值
+
+- V：要更新的变量(var)
+- E：预期值(expected)
+- N：新值(new)
+
+当多个线程同时使用CAS操作一个变量时，只有一个会胜出，并成功更新，其余均会失败，但失败的线程并不会被挂起，仅是被告知失败，并且允许再次尝试，当然也允许失败的线程放弃操作。
+
+###### Unsafe
+
+在Java中，有一个`Unsafe`类，它在`sun.misc`包中。它里面是一些`native`方法，其中就有几个关于CAS的：
+
+```java
+boolean compareAndSwapObject(Object o, long offset,Object expected, Object x);
+boolean compareAndSwapInt(Object o, long offset,int expected,int x);
+boolean compareAndSwapLong(Object o, long offset,long expected,long x);
+```
+
+unsafe的cas是通过c++实现的
+
+###### AtomicInteger
+
+Java利用unsafe实现的cas提供了一些原子操作类
+如：AtomicInteger、AtomicLong等
+本质上就是通过unsafe实现的
 
 
 
 ##### volatile
 
-在 Java 中，`volatile` 关键字可以保证变量的可见性，如果我们将变量声明为 **`volatile`** ，这就指示 JVM，这个变量是共享且不稳定的，每次使用它都到主存中进行读取。
+###### 概述
 
 **指定了`volatile` 的变量就是共享变量 能保证数据的可见性 但不能保证数据的原子性**
+
+- 当写一个 volatile 变量时，JMM 会把该线程本地内存中的变量强制刷新到主内存中去；
+- 这个写操作会导致其他线程中的 volatile 变量缓存无效。
+
+###### 重排序
+
+用 volatile 修饰共享变量 在编译时 会在指令序列中插入内存屏障来禁止特定类型的处理器重排序
+
+
 
 
 
