@@ -106,6 +106,7 @@ public class ThreadController {
 
     /**
      * 线程池创建线程
+     *
      * @return
      */
     @SneakyThrows
@@ -129,6 +130,7 @@ public class ThreadController {
 
     /**
      * 线程池创建线程
+     *
      * @return
      */
     @SneakyThrows
@@ -148,6 +150,30 @@ public class ThreadController {
         }
         System.out.println(submit.get());
         return "fixedThreadPool";
+    }
+
+    @SneakyThrows
+    @GetMapping("/countDownLatch")
+    public void countDownLatch() {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        final CountDownLatch countDownLatch = new CountDownLatch(5);
+        int i = 1;
+        while (i <= 5) {
+            int finalI = i;
+            executorService.execute(() -> {
+                try {
+                    System.out.println("线程" + finalI + "开始");
+                    Thread.sleep(5000);
+                    System.out.println("线程" + finalI + "结束");
+                    countDownLatch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+            i++;
+        }
+        countDownLatch.await();
+        System.out.println("结束");
     }
 
     //endregion

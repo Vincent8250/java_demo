@@ -1354,6 +1354,12 @@ TreeSet也一样 基本是TreeMap的套用
 - 最多允许一个null元素对象
 - 取对象时只能通过迭代器 `Iterator` 因为没有索引下标
 
+Java 对 Set 有三种实现方式
+
+- HashSet 通过 HashMap 实现，HashMap 的 Key 即 HashSet 存储的元素，Value 系统自定义一个名为 PRESENT 的 Object 类型常量。判断元素是否相同时，先比较 hashCode，相同后再利用 equals 比较，查询 O(1)
+- LinkedHashSet 继承自 HashSet，通过 LinkedHashMap 实现，使用双向链表维护元素插入顺序
+- TreeSet 通过 TreeMap 实现的，底层数据结构是红黑树，添加元素到集合时按照比较规则将其插入合适的位置，保证插入后的集合仍然有序。查询 O(logn)
+
 
 
 #### HashSet
@@ -1423,7 +1429,7 @@ HashMap允许null值（key和value都允许）  key不能重复
   另外需要注意的是HashMap中 树化需要两个条件  第一个是链表的长度超过8 第二个是数组的长度超过64
 - 总结：`推荐在使用HashMap的时候 最好给一个初始化容量 减少数组扩容次数 提高性能  也能降低链表的长度 最好不要使用到红黑树`
 
-##### 源码解析
+##### 源码
 
 关系结构：
 
@@ -1690,9 +1696,22 @@ final Node<K,V> removeNode(int hash, Object key, Object value, boolean matchValu
 
 ![image-20230828145314964](Java.assets/image-20230828145314964.png)
 
+##### 问题
+
+- hashmap数组的长度为什么是 2 的幂次方？
+  提升扩容的效率 数组长度都是2的幂次方的话 位置计算起来更方便
+  哪怕你传入的不是2的幂次方 hashmap也会给你转成2的幂次方
+- hashmap是懒加载 默认大小是16
+  树化阈值是8 链表化阈值是6 树化hash桶的元素阈值是64
+  负载因子是0.75
+- hashmap如何解决线程安全问题？
+  使用concurrentHashMap（推荐）、或者使用Collection.synchronizedMap
 
 
-##### 总结：
+
+
+
+##### 总结
 
 hashmap在1.7和1.8之间的区别
 1.7是数组加链表
@@ -1830,6 +1849,8 @@ segment 的长度也决定了 ConcurrentHashMap 的并发程度
 
 ![image-20230817155807360](Java.assets/image-20230817155807360.png)
 
+![image-20230918111122748](Java.assets/image-20230918111122748.png)
+
 
 
 ##### 线程切换
@@ -1865,6 +1886,46 @@ CLH(Craig,Landin,and Hagersten) 队列是一个虚拟的双向队列（虚拟的
 
 原理图：
 <img src="Java.assets/image-20230817161035235.png" alt="image-20230817161035235" style="zoom: 80%;" />
+
+##### 线程顺序
+
+###### CountDownLatch
+
+在实际开发中 我们可能需要保证 多个线程全部执行完成再执行接下来的代码
+所以就引入了CountDownLatch  具体的[相关博客参考](https://www.cnblogs.com/wanglongjiang/p/17144475.html)
+
+~~~java
+public void countDownLatch() {
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    final CountDownLatch countDownLatch = new CountDownLatch(5);
+    int i = 1;
+    while (i <= 5) {
+        int finalI = i;
+        executorService.execute(() -> {
+            try {
+                System.out.println("线程" + finalI + "开始");
+                Thread.sleep(5000);
+                System.out.println("线程" + finalI + "结束");
+                countDownLatch.countDown();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        i++;
+    }
+    countDownLatch.await();
+    System.out.println("结束");
+}
+~~~
+
+countDownLatch的使用环境是所有线程全部执行完成后 再执行接下来的代码
+await方法不加参数就是一直等countDownLatch为0的时候才解锁 继续执行
+await带参数的方法可以指定等待时间 超过时间直接执行接下来的代码
+
+###### CyclicBarrier
+
+CyclicBarrier的作用是等待所有线程都执行完才结束
+在我看来跟CountDownLatch的效果差不多 具体的就不演示了[参考博客](https://www.cnblogs.com/niujifei/p/15837425.html)
 
 
 
