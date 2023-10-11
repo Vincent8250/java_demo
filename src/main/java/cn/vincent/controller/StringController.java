@@ -2,9 +2,8 @@ package cn.vincent.controller;
 
 public class StringController {
     public static void main(String[] args) {
-        String a = "abc";
-        String b = "abc";
-        a = "abcd";
+        int i = 2;
+        String b = String.format("%02d", i);
         System.out.println(b);
     }
 }
