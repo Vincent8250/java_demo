@@ -350,6 +350,35 @@ Java 异常类层次结构图
 
 
 
+#### OOM问题
+
+1. 堆内存溢出：
+   - 死循环、递归层数太多、内存泄露
+     或者系统并发高请求量大内存太小
+   - 方案：-Xms1024m JVM启动内存初始大小 
+     -Xmx3062m JVM启动内存的最大值
+     排查代码
+2. 栈溢出：
+   - 单线程调用方法次数太多 一般递归层数太多
+   - 方案：-Xss512k 设置虚拟机栈大小
+     调整代码
+3. 元空间不足：
+   - 元空间初始大小 默认21M
+     可能是代码问题 cglib动态代理生成的类过多塞满Metaspace导致溢出
+   - 方案：-XX:MaxMetaspaceSize=512m
+4. GC效率太低
+   - 连续五次GC效率低 就会出现问题
+   - 方案：需要定位代码问题
+5. 数组大小超过限制
+   - 请求分配的数组太大 导致jvm空间不足
+   - 方案：需要定位代码问题
+6. 线程创建失败
+   - 方案：指定每个线程占用的堆栈大小 -Xss
+7. 堆外内存溢出
+   - 方案：JVM参数设置最大堆外内存：-XX:MaxDirectMemorySize
+
+
+
 
 
 ### 数据连接
@@ -2665,6 +2694,131 @@ public class SynchronizedDemo {
 
 ## 网络编程
 
+### Java Web
+
+##### 服务器
+
+- Tomcat- apache开源的 Servlet容器
+  tomcat 开源小型web服务器 完全免费 主要用于中小型web项目
+  只支持Servlet和JSP 等少量javaee规范  Apache公司jakarta 一个子项目
+- Jboss – hibernate公司开发 不是开源免费 J2EE容器
+- weblogic - Oracle
+
+
+
+#### Tomcat
+
+##### 目录结构
+
+- bin 它里面装入的是可执行的命令 如 startup.bat
+
+- conf 它里面是一个相关的配置文件，我们可以在里面进行例如端口，用户信息的配置
+
+- lib tomcat类库。
+
+- logs tomcat 日志文件
+
+- temp 临时文件
+
+- webapps 它里面放的是的 web site(web项目)
+
+- work 存放的是页面(例如 jsp)转换成的.class文件
+
+##### 网站搭建
+
+1. 直接在webapps下创建一个自己的web site就可以
+   1. 在webapps下创建一个myweb目录
+2. 在myweb下创建WEB-INF目录，在这个目录下创建web.xml
+	3. 将web.xml文件中的xml声明与根元素声明在其它的web site中copy过来。
+	4. 在myweb下创建一个index.html文件
+	5. 启动tomcat
+	6. 在浏览器中输入 http://localhost/myweb/index.html
+	
+2. 在server.xml文件中进行配置
+
+##### War包 Jar包
+
+###### Jar包
+
+Jar 是与平台无关的文件格式 它允许将多个文件组合成要给压缩文件
+jar 包其实就是 java 项目压缩包 是通过 java 程序压缩产生的压缩包
+jar 包是通过 JavaSE 程序打成的包
+jar 文件格式以流行的 zip 文件格式为基础
+
+目录结构：
+
+~~~bash
+根目录
+   |
+   |---- 该包的 java 类文件目录
+   |
+   |---- META-INF 目录          // 存放该包和扩展的配置数据
+~~~
+
+###### War包
+
+war包就是web项目压缩包
+war是一个可以直接运行的web模块，一个war包可以理解成就是一个web项目。
+通常用于网站，打成包部署到容器（如 tomcat）中。
+以 Tomcat 为例，war 包放置在其\webapps\ 目录下，启动 Tomcat这个包就会自动解压相当于发布
+
+war 包是 JavaWeb 程序打的包
+
+目录结构：
+
+~~~bash
+根目录
+   |
+   |---- .html、.jsp （或包含这两种文件的目录）
+   |
+   |---- WEB-INF 目录           // 存放 .class 文件和配置文件
+   |        |
+   |        |---- web.xml       // 该应用的配置文件
+   |        |
+   |        |---- classes 目录
+   |        |         |
+   |        |         |---- 编译好的 servlet 类和 js
+   |        |         |
+   |        |         |---- servlet 所依赖的其他类（如 JavaBean）
+   |        |----- lib          // 存放该包的依赖 jar 包
+   |
+   |---- META-INF 目录          // 存放该包和扩展的配置数据
+~~~
+
+
+
+#### Servlet
+
+Servlet是一个我们自定义的Java类 它必须要实现javax.servlet.Servlet接口
+Servlet是动态资源
+Servlet必须在web.xml中进行配置后 才能被访问
+
+##### 生命周期
+
+
+
+
+
+#### Filter
+
+
+
+#### Listener
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Socket
 
 
@@ -3578,6 +3732,28 @@ JAVA 中的 iterator 就用到了迭代器模式
   这种设计思想
 
 <img src="Java.assets/image-20230823155736957.png" alt="image-20230823155736957" style="zoom: 80%;" />
+
+
+
+### JVM 参数
+
+1. -Xms：设置JVM的初始堆大小。
+2. -Xmx：设置JVM的最大堆大小。
+3. -Xss：设置每个线程的栈大小。
+4. -XX:MaxMetaspaceSize：设置元空间（在JDK8之后替代了永久代）的最大大小。
+5. -XX:PermSize：设置永久代的初始大小。
+6. -XX:MaxPermSize：设置永久代的最大大小（在JDK8之前使用）。
+7. -XX:NewSize：设置新生代的初始大小。
+8. -XX:MaxNewSize：设置新生代的最大大小。
+9. -XX:SurvivorRatio：设置Eden区和Survivor区的比例。
+10. -XX:+UseParallelGC：使用并行垃圾回收器。
+11. -XX:+UseConcMarkSweepGC：使用并发标记清除垃圾回收器。
+12. -verbose:gc：打印GC日志信息。
+13. -Dproperty=value：设置系统属性。
+
+
+
+### OOM问题排查
 
 
 
