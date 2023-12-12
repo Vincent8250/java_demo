@@ -2115,6 +2115,74 @@ wait notify notifyall 三个方法 也是与线程相关的方法  但是`这三
 
 
 
+#### 线程池
+
+##### 原理
+
+###### 图解
+
+线程池采用的是生产者消费者模型
+
+![image-20231106222619022](Java.assets/image-20231106222619022.png)
+
+###### 执行流程
+
+线程池中有三个参数是最为关键的：核心线程数、最大线程数、任务缓冲阻塞队列
+
+首先设置核心线程数=10 最大线程数=20 任务缓冲阻塞队列=10
+那么在首先十个线程任务进入线程池中由核心线程处理
+接下来再进入十个线程任务 将会进入任务缓冲阻塞队列中阻塞
+最后再进入十个线程任务 将会新建线程处理
+
+###### 常用线程池实现
+
+- newCachedThreadPool
+
+  ~~~java
+  public static ExecutorService newCachedThreadPool() {
+      return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                    60L, TimeUnit.SECONDS,
+                                    new SynchronousQueue<Runnable>());
+  }
+  ~~~
+
+  本质上就是没有核心线程、任务队列也无法添加的线程池
+  每个任务都是单独新建的一个线程
+
+- newSingleThreadExecutor
+
+  ```java
+  public static ExecutorService newSingleThreadExecutor() {
+      return new FinalizableDelegatedExecutorService
+          (new ThreadPoolExecutor(1, 1,
+                                  0L, TimeUnit.MILLISECONDS,
+                                  new LinkedBlockingQueue<Runnable>()));
+  }
+  ```
+
+  本质上就是只有一个核心线程、任务队列能够无限缓存阻塞的线程池
+  每个任务都是在上一个任务结束后执行
+
+- newFixedThreadPool
+
+  ```java
+  public static ExecutorService newFixedThreadPool(int nThreads) {
+      return new ThreadPoolExecutor(nThreads, nThreads,
+                                    0L, TimeUnit.MILLISECONDS,
+                                    new LinkedBlockingQueue<Runnable>());
+  }
+  ```
+
+  本质上就是一个任务队列能够无限缓存阻塞的线程池
+
+
+
+##### 动态化线程池
+
+
+
+
+
 #### 线程安全
 
 ##### 锁概念
@@ -3624,7 +3692,7 @@ JAVA 中的 iterator 就用到了迭代器模式
 ### 类加载器类型
 
 - 启动类加载器
-  负责加载JAVA_HOME/lib目录下的可以被虚拟机识别（通过文件名称，比如rt.jar``tools.jar）的字节码文件。与之对应的是java.lang.ClassLoader类
+  负责加载JAVA_HOME/lib目录下的可以被虚拟机识别（通过文件名称，比如rt.jar、tools.jar）的字节码文件。与之对应的是java.lang.ClassLoader类
 - 扩展类加载器
   负责加载JAVA_HOME/lib/ext目录下的的字节码文件。对应sun.misc.Launcher类 此类继承于启动类加载器ClassLoader
 - 应用程序类加载器
