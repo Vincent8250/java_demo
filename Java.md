@@ -2659,6 +2659,142 @@ Java利用unsafe实现的cas提供了一些原子操作类
 
 
 
+#### 等待唤醒
+
+##### 生产者 消费者
+
+![image-20240325103701136](Java.assets/image-20240325103701136.png)
+
+涉及到三个方法：
+
+- wait：当前线程等待 直到被其他线程唤醒
+- notify：随机唤醒单个线程
+- notifyAll：唤醒所有线程
+
+**根本就是通过一个标识确定是由生产者还是消费者执行**
+**由一方执行 则另一方等待wait 执行方在执行结束后需要唤醒其他线程**
+
+参考代码： cn.vincent.thread
+
+~~~java
+public static void main(String[] args) {
+        Thread coke = new Thread(() -> {
+            while (true) {
+                synchronized (Desk.lock) {
+                    if (Desk.maxCount > 0) {
+                        if (Desk.flag == 0) {
+                            Desk.flag = 1;
+                            System.out.println("正在做");
+                            Desk.lock.notifyAll();
+                        } else if (Desk.flag == 1) {
+                            try {
+                                Desk.lock.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+        });
+
+        Thread foodie = new Thread(() -> {
+            while (true) {
+                synchronized (Desk.lock) {
+                    if (Desk.maxCount > 0) {
+                        if (Desk.flag == 0) {
+                            try {
+                                Desk.lock.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        } else if (Desk.flag == 1) {
+                            Desk.maxCount--;
+                            Desk.flag = 0;
+                            System.out.println("正在吃 剩下能吃：" + Desk.maxCount);
+                            Desk.lock.notifyAll();
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+        });
+
+        coke.start();
+        foodie.start();
+    }
+~~~
+
+
+
+##### 阻塞队列
+
+Java中主要的阻塞队列实现
+
+1. **ArrayBlockingQueue**：由数组结构组成的有界阻塞队列。此队列按照 FIFO（先进先出）的原则对元素进行排序。
+2. **LinkedBlockingQueue**：一个基于链表结构的阻塞队列，此队列按照 FIFO（先进先出）排序元素。此队列的默认和最大大小为 `Integer.MAX_VALUE`。
+3. **PriorityBlockingQueue**：一个无界阻塞队列，它支持自然排序或者通过 Comparator 进行定制排序。
+4. **DelayQueue**：一个无界阻塞队列，用于放置实现了 `Delayed` 接口的对象，其中的对象只能在其到期时才能从队列中取走。
+5. **SynchronousQueue**：一个不存储元素的阻塞队列。每个插入操作必须等待一个相应的删除操作，反之亦然。
+6. **LinkedTransferQueue**：一个由链表结构组成的无界阻塞 TransferQueue。此队列按照 FIFO（先进先出）排序元素。相对于其他并发队列，`LinkedTransferQueue` 提供了更多的方法以支持更复杂的用法。
+
+**阻塞队列就是通过队列的先进先出的原则 实现顺序排序**
+
+参考代码：cn.vincent.thread
+
+~~~Java
+
+        ArrayBlockingQueue<Consumer<String>> r = new ArrayBlockingQueue<>(10);
+
+        Thread coke_1 = new Thread(() -> {
+            int i = 0;
+            while (i < 20) {
+                i++;
+                try {
+                    int finalI = i;
+                    r.put((s) -> {
+                        System.out.println("正在做" + s);
+                        System.out.println("这是第" + finalI + "份");
+                    });
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        Thread foodie_1 = new Thread(() -> {
+            while (true) {
+                if (r.size() > 0) {
+                    try {
+                        Consumer<String> take = r.take();
+                        take.accept("面");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        coke_1.start();
+        foodie_1.start();
+~~~
+
+
+
+##### 练习案例
+
+- 卖电影票
+- 抢红包
+- 抽奖
+- 
+
+
+
+
+
 
 
 #### Java锁分类
@@ -3819,6 +3955,36 @@ JAVA 中的 iterator 就用到了迭代器模式
 
 
 
+
+
+### 堆 栈
+
+#### 基础概念
+
+- 栈：先进后出 后进先出 的数据结构
+  - 每个线程都有一个栈
+  - 程序每进入一个方法 都会形成一个栈帧 栈帧中会存放对象的引用
+  - 栈空间是自动释放的 （因为栈空间在方法结束后就会被“弹出”）
+- 堆：堆空间中存放的是实际的对象数据
+  - 堆空间需要手动释放
+
+
+
+#### 最难调试的bug
+
+- 野指针：
+  - 同一个对象 有两个指针 一个释放了 另一个不知道还在用
+  - 同一个指针 不同位置
+  - 不在指向任何对象的指针
+  - 空指针异常
+- 并发问题
+
+
+
+
+
+
+
 ### JVM 参数
 
 1. -Xms：设置JVM的初始堆大小。
@@ -4031,13 +4197,25 @@ JDK7的时候方法区在永久代 JDK8的时候因为永久代被移除 而是�
 
 ### 垃圾回收
 
-[参考文章](https://zhuanlan.zhihu.com/p/25539690)
+#### 查询算法
 
+- 堆中没有引用的内存空间数据 就是垃圾
+- Java中的垃圾回收机制是： 根可达算法
+  根可达算法简单理解：从main函数开始梳理 所有可以从main梳理到的内存空间数据 就不是垃圾
+  除此之外的就是垃圾
+- 顺嘴一提python的垃圾回收算法是标记算法 每个内存空间数据会标记有多少个引用
+  一旦引用为0就算是垃圾 （但是标记算法存在一个问题 如果是三个内存数据相互引用的情况 就不会被回收）
 
+#### 清除算法
 
+##### 概况
 
-
-#### 回收算法
+- 标记清除：通过查询算法 查询到垃圾后进行标记 然后通过标记进行清除
+  缺点：内存碎片化 因为被清除的内存不是聚集在一起的
+- 拷贝：通过拷贝 将存活的数据集中 解决了内存碎片化的问题
+  缺点：浪费内存
+- 标记压缩：在标记的时候就将数据集中排序 避免了内存碎片化和内存的浪费
+  缺点：效率低下
 
 ##### 标记 - 清除算法
 
@@ -4096,9 +4274,13 @@ JDK7的时候方法区在永久代 JDK8的时候因为永久代被移除 而是�
 
 
 
-
-
 #### 常用GC
+
+三种回收算法都有毛病 三种的综合运用 诞生出了各种各样的垃圾回收器
+
+主要的十种垃圾回收器：左边六种是分代的  右边的是不分代的（G1是逻辑上分）
+
+![image-20231225093746158](Java.assets/image-20231225093746158.png)
 
 ##### Serial
 
