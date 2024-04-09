@@ -2146,24 +2146,59 @@ wait notify notifyall 三个方法 也是与线程相关的方法  但是`这三
 
 #### 线程池
 
-##### 原理
+##### 原因
 
-###### 图解
+使用线程池最主要的三个原因
+
+1. 创建/销毁线程需要消耗系统资源，线程池可以`复用已创建的线程`。
+2. `控制并发的数量`。并发数量过多，可能会导致资源消耗过多，从而造成服务器崩溃。（主要原因）
+3. `可以对线程做统一管理`。
+
+
+
+##### 图解
 
 线程池采用的是生产者消费者模型
 
 ![image-20231106222619022](Java.assets/image-20231106222619022.png)
 
-###### 执行流程
+##### 原理
 
-线程池中有三个参数是最为关键的：核心线程数、最大线程数、任务缓冲阻塞队列
+###### 线程池参数
+
+线程池提供的构造方法中有五个必填参数
+
+- int corePoolSize：该线程池中**核心线程数最大值**
+- int maximumPoolSize：该线程池中**线程总数最大值**
+- long keepAliveTime：**非核心线程闲置超时时长**
+- TimeUnit unit：keepAliveTime的单位
+- BlockingQueue workQueue：阻塞队列，维护着**等待执行的Runnable任务对象**
+  常用阻塞队列：
+  - LinkedBlockingQueue：链式阻塞队列，底层数据结构是链表，默认大小是`Integer.MAX_VALUE`，也可以指定大小。
+  - ArrayBlockingQueue：数组阻塞队列，底层数据结构是数组，需要指定队列的大小。
+  - SynchronousQueue：同步队列，内部容量为0，每个put操作必须等待一个take操作，反之亦然。
+  - DelayQueue：延迟队列，该队列中的元素只有当其指定的延迟时间到了，才能够从队列中获取到该元素 。
+
+其中三个参数是最为关键的：核心线程数、最大线程数、任务缓冲阻塞队列
 
 首先设置核心线程数=10 最大线程数=20 任务缓冲阻塞队列=10
 那么在首先十个线程任务进入线程池中由核心线程处理
 接下来再进入十个线程任务 将会进入任务缓冲阻塞队列中阻塞
 最后再进入十个线程任务 将会新建线程处理
 
-###### 常用线程池实现
+补充上面的参数 还有两个不是必须的参数：
+
+- ThreadFactory threadFactory：创建线程的工厂 ，用于批量创建线程，统一在创建线程时设置一些参数，如是否守护线程、线程的优先级等。如果不指定，会新建一个默认的线程工厂。
+- RejectedExecutionHandler handler：**拒绝处理策略**
+  线程数量大于最大线程数就会采用拒绝处理策略，四种拒绝处理的策略为 ：
+  - ThreadPoolExecutor.AbortPolicy：**默认拒绝处理策略**，丢弃任务并抛出RejectedExecutionException异常。
+  - ThreadPoolExecutor.DiscardPolicy：丢弃新来的任务，但是不抛出异常。
+  - ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列头部（最旧的）的任务，然后重新尝试执行程序（如果再次失败，重复此过程）。
+  - ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务。
+
+
+
+###### 常用线程池
 
 - newCachedThreadPool
 
@@ -2203,6 +2238,47 @@ wait notify notifyall 三个方法 也是与线程相关的方法  但是`这三
   ```
 
   本质上就是一个任务队列能够无限缓存阻塞的线程池
+
+###### 线程池状态
+
+线程池本身有一个调度线程，这个线程就是用于管理布控整个线程池里的各种任务和事务，例如创建线程、销毁线程、任务队列管理、线程队列管理等等。
+
+故线程池也有自己的状态：RUNNING、SHUTDOWN、STOP、TIDYING 、TERMINATED
+
+- 线程池创建后处于**RUNNING**状态。
+
+- 调用shutdown()方法后处于**SHUTDOWN**状态，线程池不能接受新的任务，清除一些空闲worker,不会等待阻塞队列的任务完成。
+
+- 调用shutdownNow()方法后处于**STOP**状态，线程池不能接受新的任务，中断所有线程，阻塞队列中没有被执行的任务全部丢弃。此时，poolsize=0,阻塞队列的size也为0。
+
+- 当所有的任务已终止，ctl记录的”任务数量”为0，线程池会变为**TIDYING**状态。接着会执行terminated()函数。
+
+  > ThreadPoolExecutor中有一个控制状态的属性叫`ctl`，它是一个AtomicInteger类型的变量。线程池状态就是通过AtomicInteger类型的成员变量`ctl`来获取的。
+  >
+  > 获取的`ctl`值传入`runStateOf`方法，与`~CAPACITY`位与运算(`CAPACITY`是低29位全1的int变量)。
+  >
+  > `~CAPACITY`在这里相当于掩码，用来获取ctl的高3位，表示线程池状态；而另外的低29位用于表示工作线程数
+
+- 线程池处在TIDYING状态时，**执行完terminated()方法之后**，就会由 **TIDYING -> TERMINATED**， 线程池被设置为TERMINATED状态。
+
+###### 任务处理流程
+
+1. 线程总数量 < corePoolSize，无论线程是否空闲，都会新建一个核心线程执行任务（让核心线程数量快速达到corePoolSize，在核心线程数量 < corePoolSize时）。**注意，这一步需要获得全局锁。**
+2. 线程总数量 >= corePoolSize时，新来的线程任务会进入任务队列中等待，然后空闲的核心线程会依次去缓存队列中取任务来执行（体现了**线程复用**）。
+3. 当缓存队列满了，说明这个时候任务已经多到爆棚，需要一些“临时工”来执行这些任务了。于是会创建非核心线程去执行这个任务。**注意，这一步需要获得全局锁。**
+4. 缓存队列满了， 且总线程数达到了maximumPoolSize，则会采取上面提到的拒绝策略进行处理。
+
+![image-20240407160525356](Java.assets/image-20240407160525356.png)
+
+###### 线程复用逻辑
+
+ThreadPoolExecutor在创建线程时，会将线程封装成**工作线程worker**,并放入**工作线程组**中，然后这个worker反复从阻塞队列中拿任务去执行。
+
+简单来说就是每个worker就是一个任务线程 在执行完当前线程的任务后 会从缓存对列中取新的任务 如果没取到会被阻塞挂起 不会占用CPU 直到拿到任务
+
+
+
+
 
 
 
@@ -2329,6 +2405,7 @@ Java中每一个对象都可以作为锁  这是synchronized实现同步的基�
   - 不够灵活  只能使用某个对象作为锁  且加锁和释放的时机单一
   - 无法知道是否成功获得锁
   - 锁的类型不可更改：可重入 不可中断 非公平
+  - 不能实现读锁
 
 ###### 示例
 
@@ -2413,6 +2490,14 @@ Condition newCondition();
 
 
 
+###### StampedLock
+
+`StampedLock`类是在Java 8 才发布的，也是Doug Lea大神所写，有人号称它为锁的性能之王。它没有实现Lock接口和ReadWriteLock接口，但它其实是实现了“读写锁”的功能，并且性能比ReentrantReadWriteLock更高。StampedLock还把读锁分为了“乐观读锁”和“悲观读锁”两种。
+
+前面提到了ReentrantReadWriteLock会发生“写饥饿”的现象，但StampedLock不会。它是怎么做到的呢？它的核心思想在于，**在读的时候如果发生了写，应该通过重试的方式来获取新的值，而不应该阻塞写操作。这种模式也就是典型的无锁编程思想，和CAS自旋的思想一样**。这种操作方式决定了StampedLock在读线程非常多而写线程非常少的场景下非常适用，同时还避免了写饥饿情况的发生。
+
+
+
 ##### AQS
 
 AQS是一个用来构建锁和同步器的框架 使用AQS能简单且高效地构造出应用广泛的同步器
@@ -2439,8 +2524,8 @@ AQS内部使用了一个先进先出（FIFO）的双端队列
 
 AQS采用了模板模式 将一些具体的实现延迟到子类中
 这里提到一个设计思路 在AQS的抽象类中 下面这些逻辑方法并不是抽象方法 而是直接抛出异常
-之所以不设计成抽象方法是因为 不想强制要求子类都去实现这些逻辑
-子类只需要根据自己的逻辑进行实现即可
+之所以不设计成抽象方法是因为 不想强制要求子类都去实现这些逻辑(因为读锁不需要实现独占的两个方法 写锁也不需要实现共享的两个方法)
+子类只需要根据自己的逻辑进行实现即可 下面是主要的方法：
 
 - isHeldExclusively()：该线程是否正在独占资源 只有用到condition才需要去实现它
 - 独占方式
@@ -2456,16 +2541,17 @@ AQS采用了模板模式 将一些具体的实现延迟到子类中
 
 ###### 加锁逻辑
 
+~~~java
+public final void acquire(int arg) {
+    if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        selfInterrupt();
+}
+~~~
+
 1. 获取资源
-   首先调用 tryAcquire(arg) 尝试去获取资源（具体由子类实现）
-
-   ~~~java
-   public final void acquire(int arg) {
-       if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-           selfInterrupt();
-   }
-   ~~~
-
+   首先调用 tryAcquire(arg) 尝试去获取资源
+（具体由子类实现 arg是要获取的资源个数 独占模式下始终为1）
+   
 2. 插入队列尾部
    获取资源失败 就通过 addWaiter(Node.EXCLUSIVE) 将线程插入到等待队列中
    Node.EXCLUSIVE表示Node为独占模式（加入队列的过程用CAS自旋锁实现的  Java中的unsafe）
@@ -2636,7 +2722,9 @@ boolean compareAndSwapLong(Object o, long offset,long expected,long x);
 
 unsafe的cas是通过c++实现的
 
-###### AtomicInteger
+当然，Unsafe类里面还有其它方法用于不同的用途。比如支持线程挂起和恢复的`park`和`unpark`， LockSupport类底层就是调用了这两个方法。还有支持反射操作的`allocateInstance()`方法。
+
+###### Atomic
 
 Java利用unsafe实现的cas提供了一些原子操作类
 如：AtomicInteger、AtomicLong等
@@ -2653,9 +2741,141 @@ Java利用unsafe实现的cas提供了一些原子操作类
 - 当写一个 volatile 变量时，JMM 会把该线程本地内存中的变量强制刷新到主内存中去；
 - 这个写操作会导致其他线程中的 volatile 变量缓存无效。
 
+~~~java
+public class VolatileExample {
+    int a = 0;
+    volatile boolean flag = false;
+
+    public void writer() {
+        a = 1; // step 1
+        flag = true; // step 2
+    }
+
+    public void reader() {
+        if (flag) { // step 3
+            System.out.println(a); // step 4
+        }
+    }
+}
+~~~
+
+
+
 ###### 重排序
 
 用 volatile 修饰共享变量 在编译时 会在指令序列中插入内存屏障来禁止特定类型的处理器重排序
+
+
+
+#### 并发容器
+
+整体架构
+
+![image-20240408123616397](Java.assets/image-20240408123616397.png)
+
+
+
+##### 阻塞队列
+
+###### 概念
+
+> 阻塞队列（BlockingQueue）是一个支持两个附加操作的队列。这两个附加的操作是：在队列为空时，获取元素的线程会等待队列变为非空。当队列满时，存储元素的线程会等待队列可用。
+
+JDK7提供了7个阻塞队列 分别是：
+
+- ArrayBlockingQueue ：一个由数组结构组成的有界阻塞队列。
+- LinkedBlockingQueue ：一个由链表结构组成的有界阻塞队列。
+- PriorityBlockingQueue ：一个支持优先级排序的无界阻塞队列。
+- DelayQueue：一个使用优先级队列实现的无界阻塞队列。
+- SynchronousQueue：一个不存储元素的阻塞队列。
+- LinkedTransferQueue：一个由链表结构组成的无界阻塞队列。
+- LinkedBlockingDeque：一个由链表结构组成的双向阻塞队列。
+
+###### 原理
+
+阻塞队列利用Lock锁的多条件（Condition）阻塞控制
+
+首先：在构造器中 除了初始化队列的大小和是否是公平锁之外
+还对同一个锁（lock）初始化了两个监视器 分别是notEmpty和notFull
+这两个监视器的作用目前可以简单理解为标记分组，当该线程是put操作时，给他加上监视器notFull,标记这个线程是一个生产者；当线程是take操作时，给他加上监视器notEmpty，标记这个线程是消费者。
+
+- put 操作：
+  - 所有执行put操作的线程竞争lock锁，拿到了lock锁的线程进入下一步，没有拿到lock锁的线程自旋竞争锁。
+  - 判断阻塞队列是否满了，如果满了，则调用await方法阻塞这个线程，并标记为notFull（生产者）线程，同时释放lock锁,等待被消费者线程唤醒。
+  - 如果没有满，则调用enqueue方法将元素put进阻塞队列。注意这一步的线程还有一种情况是第二步中阻塞的线程被唤醒且又拿到了lock锁的线程。
+  - 唤醒一个标记为notEmpty（消费者）的线程。
+- take 操作：
+  - 所有执行take操作的线程竞争lock锁，拿到了lock锁的线程进入下一步，没有拿到lock锁的线程自旋竞争锁。
+  - 判断阻塞队列是否为空，如果是空，则调用await方法阻塞这个线程，并标记为notEmpty（消费者）线程，同时释放lock锁,等待被生产者线程唤醒。
+  - 如果没有空，则调用dequeue方法。注意这一步的线程还有一种情况是第二步中阻塞的线程被唤醒且又拿到了lock锁的线程。
+  - 唤醒一个标记为notFull（生产者）的线程。
+
+阻塞队列一般使用在生产者消费者模式下 Java中的线程池就是使用阻塞对列实现的
+
+
+
+##### 并发集合
+
+###### ConcurrentHashMap
+
+###### 概念
+
+> ConcurrentHashMap同HashMap一样也是基于散列表的map，但是它提供了一种与Hashtable完全不同的加锁策略，提供更高效的并发性和伸缩性。
+
+###### 1.7 的ConcurrentHashMap
+
+> ConcurrentHashMap在JDK 1.7中，提供了一种粒度更细的加锁机制来实现在多线程下更高的性能，这种机制叫分段锁(Lock Striping)
+
+提供的优点是：在并发环境下将实现更高的吞吐量，而在单线程环境下只损失非常小的性能。
+
+可以这样理解分段锁，就是`将数据分段，对每一段数据分配一把锁`。当一个线程占用锁访问其中一个段数据的时候，其他段的数据也能被其他线程访问。
+
+有些方法需要跨段，比如size()、isEmpty()、containsValue()，它们可能需要锁定整个表而不仅仅是某个段，这需要按顺序锁定所有段，操作完毕后，又按顺序释放所有段的锁。如下图：
+
+![image-20240408124108220](Java.assets/image-20240408124108220.png)
+
+ConcurrentHashMap是由Segment数组结构和HashEntry数组结构组成。Segment是一种可重入锁ReentrantLock，HashEntry则用于存储键值对数据。
+
+一个ConcurrentHashMap里包含一个Segment数组，Segment的结构和HashMap类似，是一种数组和链表结构， 一个Segment里包含一个HashEntry数组，每个HashEntry是一个链表结构的元素， 每个Segment守护着一个HashEntry数组里的元素，当对HashEntry数组的数据进行修改时，必须首先获得它对应的Segment锁。
+
+###### 1.8 的ConcurrentHashMap
+
+而在JDK 1.8中，ConcurrentHashMap主要做了两个优化：
+
+- 同HashMap一样，链表也会在长度达到8的时候转化为红黑树，这样可以提升大量冲突时候的查询效率；
+- 以某个位置的头结点（链表的头结点或红黑树的root结点）为锁，配合自旋+CAS避免不必要的锁开销，进一步提升并发性能。
+
+
+
+##### CopyOnWrite
+
+###### 概念
+
+> CopyOnWrite是计算机设计领域中的一种优化策略，也是一种在并发场景下常用的设计思想——写入时复制思想
+> 有多个调用者同时去请求一个资源数据的时候，有一个调用者出于某些原因需要对当前的数据源进行修改，这个时候系统将会复制一个当前数据源的副本给调用者修改
+>
+> CopyOnWrite容器即`写时复制的容器`,当我们往一个容器中添加元素的时候，不直接往容器中添加，而是将当前容器进行copy，复制出来一个新的容器，然后向新容器中添加我们需要的元素，最后将原容器的引用指向新容器。
+> 这样做的好处在于，我们可以在并发的场景下对容器进行"读操作"而不需要"加锁"，从而达到读写分离的目的。
+
+###### CopyOnWriteArrayList
+
+**优点**： CopyOnWriteArrayList经常被用于“读多写少”的并发场景，是因为CopyOnWriteArrayList无需任何同步措施，大大增强了读的性能。
+
+**缺点**： 
+
+- 第一个缺点是CopyOnWriteArrayList每次执行写操作都会将原容器进行拷贝一份，数据量大的时候，内存会存在较大的压力，可能会引起频繁Full GC（ZGC因为没有使用Full GC）。比如这些对象占用的内存200M左右，那么再写入100M数据进去，内存就会多占用300M。
+- 第二个缺点是CopyOnWriteArrayList由于实现的原因，写和读分别作用在不同新老容器上，在写操作执行过程中，读不会阻塞，但读取到的却是老容器的数据。
+
+###### 应用场景
+
+假如我们有一个搜索的网站需要屏蔽一些“关键字”，“黑名单”每晚定时更新，每当用户搜索的时候，“黑名单”中的关键字不会出现在搜索结果当中，并且提示用户敏感字。
+
+###### 问题
+
+CopyOnWrite容器有**数据一致性**的问题，它只能保证**最终数据一致性**。
+所以如果希望写入的数据马上能准确地读取，请不要使用CopyOnWrite容器。
+
+
 
 
 
@@ -2786,10 +3006,10 @@ Java中主要的阻塞队列实现
 
 ##### 练习案例
 
-- 卖电影票
-- 抢红包
-- 抽奖
-- 
+- 卖电影票：cn.vincent.thread.MovieTicket
+- 抢红包：cn.vincent.thread.RedEnvelope
+- 抽奖：cn.vincent.thread.Raffle0/1/2
+- 奇偶数：cn.vincent.thread.OddNumber
 
 
 
@@ -2893,6 +3113,611 @@ public class SynchronizedDemo {
 
 - **可中断锁**：获取锁的过程中可以被中断，不需要一直等到获取锁之后 才能进行其他逻辑处理。`ReentrantLock` 就属于是可中断锁。
 - **不可中断锁**：一旦线程申请了锁，就只能等到拿到锁以后才能进行其他的逻辑处理。 `synchronized` 就属于是不可中断锁。
+
+#### 多线程原理
+
+##### 基本概念
+
+###### Java 内存模型的抽象结构
+
+![JMM抽象示意图](Java.assets/JMM抽象示意图.jpg)
+
+
+
+###### 内存可见性：
+
+JMM有一个主内存 每个线程有自己私有的工作内存 工作内存中保存了一些变量在主内存的拷贝
+**内存可见性 指的是线程之间的可见性 当一个线程修改了共享变量时 另一个线程可以读取到这个修改后的值**
+
+
+
+###### 重排序：
+
+为了提高程序执行性能 编译器和处理器常常会对指令做重排(在不影响结果的情况下重排 减少等待)
+
+- 编译器重排：编译器在**不改变单线程程序语义**的前提下 可以重新安排语句的执行顺序
+- 指令并行重排：如果**不存在数据依赖性**(即后一个执行的语句无需依赖前面执行的语句的结果) 处理器可以改变语句对应的机器指令的执行顺序
+  **指令重排可以保证串行语义一致 但是没有义务保证多线程间的语义也一致**
+- 内存系统重排：由于处理器使用缓存和读写缓存冲区 这使得加载(load)和存储(store)操作看上去可能是在乱序执行 因为三级缓存的存在 导致内存与缓存的数据同步存在时间差
+
+###### happens-before规则：
+
+- 如果一个操作happens-before另一个操作 那么第一个操作的执行结果将对第二个操作可见 而且第一个操作的执行顺序排在第二个操作之前
+- 两个操作之间存在happens-before关系 并不意味着Java平台的具体实现必须要按照happens-before关系指定的顺序来执行
+  **如果重排序之后的执行结果 与按happens-before关系来执行的结果一致 那么JMM也允许这样的重排序**
+
+**总之 如果操作A happens-before操作B 那么操作A在内存上所做的操作对操作B都是可见的 不管它们在不在一个线程**
+
+
+
+###### volatile：
+
+比锁更轻量级的线程安全同步手段
+
+- 保证变量的**内存可见性**
+  - 当一个线程对`volatile`修饰的变量进行**写操作** JMM会立即把该线程对应的本地内存中的共享变量的值刷新到主内存
+    当一个线程对`volatile`修饰的变量进行**读操作** JMM会把立即该线程对应的本地内存置为无效 从主内存中读取共享变量的值
+  
+- 禁止volatile变量与普通变量**重排序**
+  - 内存屏障：通过内存屏障实现禁止与普通变量的重排序
+    编译器在生成字节码时  在指令序列中插入内存屏障来禁止处理器重排序
+    - 在每个volatile写操作前插入一个StoreStore屏障；
+    - 在每个volatile写操作后插入一个StoreLoad屏障；
+    - 在每个volatile读操作后插入一个LoadLoad屏障；
+    - 在每个volatile读操作后再插入一个LoadStore屏障。
+  - 重排规则：
+    - 如果第一个操作是volatile读，那无论第二个操作是什么，都不能重排序；
+    - 如果第二个操作是volatile写，那无论第一个操作是什么，都不能重排序；
+    - 如果第一个操作是volatile写，第二个操作是volatile读，那不能重排序；
+  
+- 用途：
+  在保证内存可见性这一点上 volatile与锁内存语义相同 可以作为一个“轻量级”锁来使用
+  volatile仅仅保证对单个volatile变量的读/写具有原子性，而锁可以保证整个**临界区代码**的执行具有原子性。所以**在功能上，锁比volatile更强大；在性能上，volatile更有优势**。
+
+  - 实际使用案例：我们实现单例模式的时候 有一种实现方式是双重锁检查 如果不使用volatile来保证禁止重排 可能会出现返回未初始化完成的对象
+    线程A在运行到第十行**new Singleton()**的时候 因为对象初始化是比较耗时的行为（特别是比较大的对象）所以有可能线程B运行到第七行**if (instance == null)**判断对象是否为空 但实际上对象在线程A中已经分配了内存并做好了指向 所以线程B有可能获取到未初始化完成的对象
+
+    ~~~java
+    public class Singleton {
+    
+        private static Singleton instance; // 不使用volatile关键字
+    
+        // 双重锁检验
+        public static Singleton getInstance() {
+            if (instance == null) { // 第7行
+                synchronized (Singleton.class) {
+                    if (instance == null) {
+                        instance = new Singleton(); // 第10行
+                    }
+                }
+            }
+            return instance;
+        }
+    }
+    ~~~
+
+    
+
+#### 锁原理
+
+首先：**Java多线程的锁都是基于对象的**
+
+##### Java 对象头
+
+**每个Java对象都有对象头**，如果是非数组类型，则用2个字宽来存储对象头，如果是数组，则会用3个字宽来存储对象头。在32位处理器中，一个字宽是32位；在64位虚拟机中，一个字宽是64位。
+对象头的内容如下表：
+
+| 长度     | 内容                   | 说明                         |
+| -------- | ---------------------- | ---------------------------- |
+| 32/64bit | Mark Word              | 存储对象的hashCode或锁信息等 |
+| 32/64bit | Class Metadata Address | 存储到对象类型数据的指针     |
+| 32/64bit | Array length           | 数组的长度（如果是数组）     |
+
+其中Mark word比较重要 其中记载了：
+
+| 锁状态   | 29 bit 或 61 bit             | 1 bit 是否是偏向锁？       | 2 bit 锁标志位 |
+| -------- | ---------------------------- | -------------------------- | -------------- |
+| 无锁     |                              | 0                          | 01             |
+| 偏向锁   | 线程ID                       | 1                          | 01             |
+| 轻量级锁 | 指向栈中锁记录的指针         | 此时这一位不用于标识偏向锁 | 00             |
+| 重量级锁 | 指向互斥量（重量级锁）的指针 | 此时这一位不用于标识偏向锁 | 10             |
+| GC标记   |                              | 此时这一位不用于标识偏向锁 | 11             |
+
+当对象状态为偏向锁时，`Mark Word`存储的是偏向的线程ID；
+当状态为轻量级锁时，`Mark Word`存储的是指向线程栈中`Lock Record`的指针；
+当状态为重量级锁时，`Mark Word`为指向堆中的monitor对象的指针。
+
+##### 偏向锁
+
+大多数情况下**锁不仅不存在多线程竞争 而且总是由同一线程多次获得**
+
+###### 概念
+
+偏向锁会偏向于第一个访问锁的线程，如果在接下来的运行过程中，该锁没有被其他的线程访问，则持有偏向锁的线程将永远不需要触发同步。也就是说，**偏向锁在资源无竞争情况下消除了同步语句，连CAS操作都不做了，提高了程序的运行性能。**
+
+> 白话就是对锁置个变量，如果发现为true，代表资源无竞争，则无需再走各种加锁/解锁流程。
+> 如果为false，代表存在其他线程竞争资源，那么就会走后面的流程。
+
+###### 实现原理
+
+线程在第一次进入同步块时，会在对象头和栈帧中的锁记录里存储锁的偏向的线程ID。
+当下次该线程进入这个同步块时，会去检查锁的Mark Word里面是不是放的自己的线程ID。
+
+如果是，表明该线程已经获得了锁，以后该线程在进入和退出同步块时不需要花费CAS操作来加锁和解锁 ；如果不是，就代表有另一个线程来竞争这个偏向锁。这个时候会尝试使用CAS来替换Mark Word里面的线程ID为新线程的ID，这个时候要分两种情况：
+
+- 成功，表示之前的线程不存在了， Mark Word里面的线程ID为新线程的ID，锁不会升级，仍然为偏向锁；
+- 失败，表示之前的线程仍然存在，那么暂停之前的线程，设置偏向锁标识为0，并设置锁标志位为00，升级为轻量级锁，会按照轻量级锁的方式进行竞争锁。
+
+线程竞争偏向锁的过程如下：
+
+![image-20240401144859238](Java.assets/image-20240401144859238.png)
+
+###### 撤销偏向锁
+
+![image-20240401152613787](Java.assets/image-20240401152613787.png)
+
+##### 轻量级锁
+
+###### 概念
+
+多个线程在不同时段获取同一把锁，即不存在锁竞争的情况，也就没有线程阻塞。针对这种情况，JVM采用轻量级锁来避免线程的阻塞与唤醒。
+
+###### 实现原理
+
+`JVM会为每个线程在当前线程的栈帧中创建用于存储锁记录的空间` 我们称为Displaced Mark Word
+如果一个线程获得锁的时候发现是轻量级锁 会把锁的Mark Word复制到自己的Displaced Mark Word里面
+
+然后线程尝试用CAS将锁的Mark Word替换为指向锁记录的指针。如果成功，当前线程获得锁，如果失败，表示Mark Word已经被替换成了其他线程的锁记录，说明在与其它线程竞争锁，当前线程就尝试使用自旋来获取锁。
+
+自旋是需要消耗CPU的，如果一直获取不到锁的话，那该线程就一直处在自旋状态，白白浪费CPU资源。解决这个问题最简单的办法就是指定自旋的次数，例如让其循环10次，如果还没获取到锁就进入阻塞状态。
+
+但是JDK采用了更聪明的方式——适应性自旋，简单来说就是线程如果自旋成功了，则下次自旋的次数会更多，如果自旋失败了，则自旋的次数就会减少。
+
+自旋也不是一直进行下去的，如果自旋到一定程度（和JVM、操作系统相关），依然没有获取到锁，称为自旋失败，那么这个线程会阻塞。同时这个锁就会**升级成重量级锁**。
+
+###### 释放轻量级锁
+
+![image-20240401165954747](Java.assets/image-20240401165954747.png)
+
+##### 重量级锁
+
+###### 概念
+
+重量级锁依赖于操作系统的互斥量（mutex） 实现的
+操作系统中线程间状态的转换需要相对比较长的时间 `所以重量级锁效率很低` 被阻塞的线程不会消耗CPU
+
+对象锁会设置几种状态用来区分请求的线程：
+
+> Contention List：所有请求锁的线程将被首先放置到该竞争队列
+> Entry List：Contention List中那些有资格成为候选人的线程被移到Entry List
+> Wait Set：那些调用wait方法被阻塞的线程被放置到Wait Set
+> OnDeck：任何时刻最多只能有一个线程正在竞争锁，该线程称为OnDeck
+> Owner：获得锁的线程称为Owner
+> !Owner：释放锁的线程
+
+当一个线程尝试获得锁时，如果该锁已经被占用，则会将该线程封装成一个`ObjectWaiter`对象插入到Contention List的队列的队首，然后调用`park`函数挂起当前线程。
+
+当线程释放锁时，会从Contention List或EntryList中挑选一个线程唤醒，被选中的线程叫做`Heir presumptive`即假定继承人，假定继承人被唤醒后会尝试获得锁，但`synchronized`是非公平的，**所以假定继承人不一定能获得锁**。这是因为对于重量级锁，线程先自旋尝试获得锁，这样做的目的是为了减少执行操作系统同步操作带来的开销。如果自旋不成功再进入等待队列。这对那些已经在等待队列中的线程来说，稍微显得不公平，还有一个不公平的地方是自旋线程可能会抢占了Ready线程的锁。
+
+如果线程获得锁后调用`Object.wait`方法，则会将线程加入到WaitSet中，当被`Object.notify`唤醒后，会将线程从WaitSet移动到Contention List或EntryList中去。需要注意的是，当调用一个锁对象的`wait`或`notify`方法时，**如当前锁的状态是偏向锁或轻量级锁则会先膨胀成重量级锁**。
+
+##### 锁升级
+
+每一个线程在准备获取共享资源时： 
+
+> 第一步，检查MarkWord里面是不是放的自己的ThreadId ,如果是，表示当前线程是处于 “偏向锁”
+
+> 第二步，如果MarkWord不是自己的ThreadId，锁升级，这时候，用CAS来执行切换，新的线程根据MarkWord里面现有的ThreadId，通知之前线程暂停，之前线程将Markword的内容置为空。
+
+> 第三步，两个线程都把锁对象的HashCode复制到自己新建的用于存储锁的记录空间，接着开始通过CAS操作， 把锁对象的MarKword的内容修改为自己新建的记录空间的地址的方式竞争MarkWord。
+
+>  第四步，第三步中成功执行CAS的获得资源，失败的则进入自旋 。
+
+> 第五步，自旋的线程在自旋过程中，成功获得资源(即之前获的资源的线程执行完成并释放了共享资源)，则整个状态依然处于 轻量级锁的状态，如果自旋失败 。
+
+> 第六步，进入重量级锁的状态，这个时候，自旋的线程进行阻塞，等待之前线程执行完成并唤醒自己。
+
+##### 各种锁对比
+
+| 锁       | 优点                                                         | 缺点                                             | 适用场景                             |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------ |
+| 偏向锁   | 加锁和解锁不需要额外的消耗，和执行非同步方法比仅存在纳秒级的差距。 | 如果线程间存在锁竞争，会带来额外的锁撤销的消耗。 | 适用于只有一个线程访问同步块场景。   |
+| 轻量级锁 | 竞争的线程不会阻塞，提高了程序的响应速度。                   | 如果始终得不到锁竞争的线程使用自旋会消耗CPU。    | 追求响应时间。同步块执行速度非常快。 |
+| 重量级锁 | 线程竞争不使用自旋，不会消耗CPU。                            | 线程阻塞，响应时间缓慢。                         | 追求吞吐量。同步块执行时间较长。     |
+
+#### 通讯工具类
+
+| 类             | 作用                                       |
+| -------------- | ------------------------------------------ |
+| Semaphore      | 限制线程的数量                             |
+| Exchanger      | 两个线程交换数据                           |
+| CountDownLatch | 线程等待直到计数器减为0时开始工作          |
+| CyclicBarrier  | 作用跟CountDownLatch类似，但是可以重复使用 |
+| Phaser         | 增强的CyclicBarrier                        |
+
+##### Semaphore
+
+Semaphore翻译过来是信号的意思。顾名思义，这个工具类提供的功能就是多个线程彼此“打信号”。而这个“信号”是一个`int`类型的数据，也可以看成是一种“资源”。
+
+可以在构造函数中传入初始资源总数，以及是否使用“公平”的同步器。默认情况下，是非公平的。
+
+```java
+// 默认情况下使用非公平
+public Semaphore(int permits) {
+    sync = new NonfairSync(permits);
+}
+
+public Semaphore(int permits, boolean fair) {
+    sync = fair ? new FairSync(permits) : new NonfairSync(permits);
+}
+```
+
+最主要的方法是acquire方法和release方法。acquire()方法会申请一个permit，而release方法会释放一个permit。当然，你也可以申请多个acquire(int permits)或者释放多个release(int permits)。
+
+每次acquire，permits就会减少一个或者多个。如果减少到了0，再有其他线程来acquire，那就要阻塞这个线程直到有其它线程release permit为止。
+
+###### 原理
+
+Semaphore内部有一个继承了AQS的同步器Sync，重写了`tryAcquireShared`方法。在这个方法里，会去尝试获取资源。
+
+如果获取失败（想要的资源数量小于目前已有的资源数量），就会返回一个负数（代表尝试获取资源失败）。然后当前线程就会进入AQS的等待队列。
+
+
+
+##### Exchanger
+
+Exchanger类用于两个线程交换数据。它支持泛型，也就是说你可以在两个线程之间传送任何数据。先来一个案例看看如何使用，比如两个线程之间想要传送字符串：
+
+```java
+public class ExchangerDemo {
+    public static void main(String[] args) throws InterruptedException {
+        Exchanger<String> exchanger = new Exchanger<>();
+
+        new Thread(() -> {
+            try {
+                System.out.println("这是线程A，得到了另一个线程的数据："
+                        + exchanger.exchange("这是来自线程A的数据"));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        System.out.println("这个时候线程A是阻塞的，在等待线程B的数据");
+        Thread.sleep(1000);
+
+        new Thread(() -> {
+            try {
+                System.out.println("这是线程B，得到了另一个线程的数据："
+                        + exchanger.exchange("这是来自线程B的数据"));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+}
+```
+
+输出：
+
+> 这个时候线程A是阻塞的，在等待线程B的数据
+> 这是线程B，得到了另一个线程的数据：这是来自线程A的数据
+> 这是线程A，得到了另一个线程的数据：这是来自线程B的数据
+
+可以看到，当一个线程调用exchange方法后，它是处于阻塞状态的，只有当另一个线程也调用了exchange方法，它才会继续向下执行。看源码可以发现它是使用park/unpark来实现等待状态的切换的，但是在使用park/unpark方法之前，使用了CAS检查，估计是为了提高性能。
+
+Exchanger一般用于两个线程之间更方便地在内存中交换数据，因为其支持泛型，所以我们可以传输任何的数据，比如IO流或者IO缓存。根据JDK里面的注释的说法，可以总结为一下特性：
+
+- 此类提供对外的操作是同步的；
+- 用于成对出现的线程之间交换数据；
+- 可以视作双向的同步队列；
+- 可应用于基因算法、流水线设计等场景。
+
+Exchanger类还有一个有超时参数的方法，如果在指定时间内没有另一个线程调用exchange，就会抛出一个超时异常。
+
+```java
+public V exchange(V x, long timeout, TimeUnit unit)
+```
+
+那么问题来了，Exchanger只能是两个线程交换数据吗？那三个调用同一个实例的exchange方法会发生什么呢？答案是只有前两个线程会交换数据，第三个线程会进入阻塞状态。
+
+需要注意的是，exchange是可以重复使用的。也就是说。两个线程可以使用Exchanger在内存中不断地再交换数据。
+
+
+
+##### CountDownLatch
+
+###### 概念
+
+> CountDownLatch 可以用于 假设某个线程在执行任务之前，需要等待其它线程完成一些前置任务，必须等所有的前置任务都完成，才能开始执行本线程的任务。
+
+###### 案例
+
+我们知道，玩游戏的时候，在游戏真正开始之前，一般会等待一些前置任务完成，比如“加载地图数据”，“加载人物模型”，“加载背景音乐”等等。只有当所有的东西都加载完成后，玩家才能真正进入游戏。下面我们就来模拟一下这个demo。
+
+```java
+public class CountDownLatchDemo {
+    // 定义前置任务线程
+    static class PreTaskThread implements Runnable {
+
+        private String task;
+        private CountDownLatch countDownLatch;
+
+        public PreTaskThread(String task, CountDownLatch countDownLatch) {
+            this.task = task;
+            this.countDownLatch = countDownLatch;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Random random = new Random();
+                Thread.sleep(random.nextInt(1000));
+                System.out.println(task + " - 任务完成");
+                countDownLatch.countDown();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        // 假设有三个模块需要加载
+        CountDownLatch countDownLatch = new CountDownLatch(3);
+
+        // 主任务
+        new Thread(() -> {
+            try {
+                System.out.println("等待数据加载...");
+                System.out.println(String.format("还有%d个前置任务", countDownLatch.getCount()));
+                countDownLatch.await();
+                System.out.println("数据加载完成，正式开始游戏！");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        // 前置任务
+        new Thread(new PreTaskThread("加载地图数据", countDownLatch)).start();
+        new Thread(new PreTaskThread("加载人物模型", countDownLatch)).start();
+        new Thread(new PreTaskThread("加载背景音乐", countDownLatch)).start();
+    }
+}
+```
+
+输出：
+
+> 等待数据加载...
+> 还有3个前置任务
+> 加载人物模型 - 任务完成
+> 加载背景音乐 - 任务完成
+> 加载地图数据 - 任务完成
+> 数据加载完成，正式开始游戏！
+
+###### 原理
+
+其实CountDownLatch类的原理挺简单的，内部同样是一个继承了AQS的实现类Sync，且实现起来还很简单，可能是JDK里面AQS的子类中最简单的实现了，有兴趣的读者可以去看看这个内部类的源码。
+
+需要注意的是构造器中的**计数值（count）实际上就是闭锁需要等待的线程数量**。这个值只能被设置一次，而且CountDownLatch**没有提供任何机制去重新设置这个计数值**。
+
+
+
+##### CyclicBarrier
+
+###### 概念
+
+> 前面提到了CountDownLatch一旦计数值`count`被降为0后，就不能再重新设置了，它只能起一次“屏障”的作用。而CyclicBarrier拥有CountDownLatch的所有功能，还可以使用`reset()`方法重置屏障。
+
+###### 案例
+
+我们同样用玩游戏的例子。如果玩一个游戏有多个“关卡”，那使用CountDownLatch显然不太合适，那需要为每个关卡都创建一个实例。那我们可以使用CyclicBarrier来实现每个关卡的数据加载等待功能。
+
+```java
+public class CyclicBarrierDemo {
+    static class PreTaskThread implements Runnable {
+
+        private String task;
+        private CyclicBarrier cyclicBarrier;
+
+        public PreTaskThread(String task, CyclicBarrier cyclicBarrier) {
+            this.task = task;
+            this.cyclicBarrier = cyclicBarrier;
+        }
+
+        @Override
+        public void run() {
+            // 假设总共三个关卡
+            for (int i = 1; i < 4; i++) {
+                try {
+                    Random random = new Random();
+                    Thread.sleep(random.nextInt(1000));
+                    System.out.println(String.format("关卡%d的任务%s完成", i, task));
+                    cyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(3, () -> {
+            System.out.println("本关卡所有前置任务完成，开始游戏...");
+        });
+
+        new Thread(new PreTaskThread("加载地图数据", cyclicBarrier)).start();
+        new Thread(new PreTaskThread("加载人物模型", cyclicBarrier)).start();
+        new Thread(new PreTaskThread("加载背景音乐", cyclicBarrier)).start();
+    }
+}
+```
+
+输出：
+
+> 关卡1的任务加载地图数据完成
+> 关卡1的任务加载背景音乐完成
+> 关卡1的任务加载人物模型完成
+> 本关卡所有前置任务完成，开始游戏...
+> 关卡2的任务加载地图数据完成
+> 关卡2的任务加载背景音乐完成
+> 关卡2的任务加载人物模型完成
+> 本关卡所有前置任务完成，开始游戏...
+> 关卡3的任务加载人物模型完成
+> 关卡3的任务加载地图数据完成
+> 关卡3的任务加载背景音乐完成
+> 本关卡所有前置任务完成，开始游戏...
+
+注意这里跟CountDownLatch的代码有一些不同。CyclicBarrier没有分为`await()`和`countDown()`，而是只有单独的一个`await()`方法。
+
+一旦调用await()方法的线程数量等于构造方法中传入的任务总量（这里是3），就代表达到屏障了。CyclicBarrier允许我们在达到屏障的时候可以执行一个任务，可以在构造方法传入一个Runnable类型的对象。上述案例就是在达到屏障时，输出“本关卡所有前置任务完成，开始游戏...”。
+
+###### 原理
+
+CyclicBarrier虽说功能与CountDownLatch类似，但是实现原理却完全不同，CyclicBarrier内部使用的是Lock + Condition实现的等待/通知模式。
+
+
+
+##### Phaser
+
+前面我们介绍了CyclicBarrier，可以发现它在构造方法里传入“任务总量”`parties`之后，就不能修改这个值了，并且每次调用`await()`方法也只能消耗一个`parties`计数。但Phaser可以动态地调整任务总量！
+
+###### 案例
+
+还是游戏的案例。假设我们游戏有三个关卡，但只有第一个关卡有新手教程，需要加载新手教程模块。但后面的第二个关卡和第三个关卡都不需要。我们可以用Phaser来做这个需求。
+
+代码：
+
+```java
+public class PhaserDemo {
+    static class PreTaskThread implements Runnable {
+
+        private String task;
+        private Phaser phaser;
+
+        public PreTaskThread(String task, Phaser phaser) {
+            this.task = task;
+            this.phaser = phaser;
+        }
+
+        @Override
+        public void run() {
+            for (int i = 1; i < 4; i++) {
+                try {
+                    // 第二次关卡起不加载NPC，跳过
+                    if (i >= 2 && "加载新手教程".equals(task)) {
+                        continue;
+                    }
+                    Random random = new Random();
+                    Thread.sleep(random.nextInt(1000));
+                    System.out.println(String.format("关卡%d，需要加载%d个模块，当前模块【%s】",
+                            i, phaser.getRegisteredParties(), task));
+
+                    // 从第二个关卡起，不加载NPC
+                    if (i == 1 && "加载新手教程".equals(task)) {
+                        System.out.println("下次关卡移除加载【新手教程】模块");
+                        phaser.arriveAndDeregister(); // 移除一个模块
+                    } else {
+                        phaser.arriveAndAwaitAdvance();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        Phaser phaser = new Phaser(4) {
+            @Override
+            protected boolean onAdvance(int phase, int registeredParties) {
+                System.out.println(String.format("第%d次关卡准备完成", phase + 1));
+                return phase == 3 || registeredParties == 0;
+            }
+        };
+
+        new Thread(new PreTaskThread("加载地图数据", phaser)).start();
+        new Thread(new PreTaskThread("加载人物模型", phaser)).start();
+        new Thread(new PreTaskThread("加载背景音乐", phaser)).start();
+        new Thread(new PreTaskThread("加载新手教程", phaser)).start();
+    }
+}
+```
+
+输出：
+
+> 关卡1，需要加载4个模块，当前模块【加载背景音乐】
+> 关卡1，需要加载4个模块，当前模块【加载新手教程】
+> 下次关卡移除加载【新手教程】模块
+> 关卡1，需要加载3个模块，当前模块【加载地图数据】
+> 关卡1，需要加载3个模块，当前模块【加载人物模型】
+> 第1次关卡准备完成
+> 关卡2，需要加载3个模块，当前模块【加载地图数据】
+> 关卡2，需要加载3个模块，当前模块【加载背景音乐】
+> 关卡2，需要加载3个模块，当前模块【加载人物模型】
+> 第2次关卡准备完成
+> 关卡3，需要加载3个模块，当前模块【加载人物模型】
+> 关卡3，需要加载3个模块，当前模块【加载地图数据】
+> 关卡3，需要加载3个模块，当前模块【加载背景音乐】
+> 第3次关卡准备完成
+
+###### 原理
+
+Phaser类的原理相比起来要复杂得多。它内部使用了两个基于Fork-Join框架的原子类辅助：
+
+```java
+private final AtomicReference<QNode> evenQ;
+private final AtomicReference<QNode> oddQ;
+
+static final class QNode implements ForkJoinPool.ManagedBlocker {
+    // 实现代码
+}
+```
+
+##### 总结
+
+在web开发中 应用到的业务场景其实可能比较少
+CountDownLatch，CyclicBarrier，Phaser是一个比一个强大，但也一个比一个复杂。根据自己的业务需求合理选择即可。
+
+
+
+#### 补充知识点
+
+##### Fork / Join 框架
+
+###### 概念
+
+> Fork/Join框架是一个实现了ExecutorService接口的多线程处理器，它专为那些可以通过递归分解成更细小的任务而设计，最大化的利用多核处理器来提高应用程序的性能。
+>
+> 与其他ExecutorService相关的实现相同的是，Fork/Join框架会将任务分配给线程池中的线程。而与之不同的是，Fork/Join框架在执行任务时使用了**工作窃取算法**。
+
+![image-20240408173944384](Java.assets/image-20240408173944384.png)
+
+###### 工作窃取算法
+
+工作窃取算法指的是在多线程执行不同任务队列的过程中，某个线程执行完自己队列的任务后从其他线程的任务队列里窃取任务来执行。
+
+工作窃取流程如下图所示：![image-20240408174058899](Java.assets/image-20240408174058899.png)
+
+值得注意的是，当一个线程窃取另一个线程的时候，为了减少两个任务线程之间的竞争，我们通常使用**双端队列**来存储任务。被窃取的任务线程都从双端队列的**头部**拿任务执行，而窃取其他任务的线程从双端队列的**尾部**执行任务。
+
+另外，当一个线程在窃取任务时要是没有其他可用的任务了，这个线程会进入**阻塞状态**以等待再次“工作”。
+
+`Java 8 Stream的并行操作底层就是用到了Fork/Join框架`
+具体的逻辑可以参考文章 =》[19 Java 8 Stream并行计算原理 · 深入浅出Java多线程 (redspider.group)](http://concurrent.redspider.group/article/03/19.html)
+
+###### 注意
+
+需要值得注意的是Fork/Join框架是通过 多核处理器实现的 所以如果你的服务器并不是多核服务器 那也没必要用Stream的并行计算
+因为在单核的情况下 往往Stream的串行计算比并行计算更快 因为它不需要线程切换的开销
+
+
+
+
+
+
+
+
+
+
 
 
 
